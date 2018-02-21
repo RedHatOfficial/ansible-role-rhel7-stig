@@ -1,2 +1,2036 @@
----
-# tasks file for rhel7-role-stig-rhel7-disa
+- check_mode: false
+  name: Check existence of yum on Fedora
+  register: yum_config_file
+  stat: {path: /etc/yum.conf}
+  when: ansible_distribution == "Fedora"
+- ini_file: {create: false, dest: '{{item}}', option: gpgcheck, section: main, value: 1}
+  name: Ensure GPG check is globally activated (yum)
+  tags: [ensure_gpgcheck_globally_activated, high_severity, unknown_strategy, low_complexity,
+    medium_disruption, CCE-26989-4, DISA-STIG-RHEL-07-020050]
+  when: ansible_distribution == "RedHat" or ansible_distribution == "CentOS" or yum_config_file.stat.exists
+  with_items: /etc/yum.conf
+- ini_file: {create: false, dest: '{{item}}', option: gpgcheck, section: main, value: 1}
+  name: Ensure GPG check is globally activated (dnf)
+  tags: [ensure_gpgcheck_globally_activated, high_severity, unknown_strategy, low_complexity,
+    medium_disruption, CCE-26989-4, DISA-STIG-RHEL-07-020050]
+  when: ansible_distribution == "Fedora"
+  with_items: /etc/dnf/dnf.conf
+- name: Security patches are up to date
+  package: {name: '*', state: latest}
+  tags: [security_patches_up_to_date, high_severity, patch_strategy, low_complexity,
+    high_disruption, CCE-26895-3, DISA-STIG-RHEL-07-020260]
+- lineinfile: {dest: /etc/yum.conf, insertafter: '\[main\]', line: clean_requirements_on_remove=1,
+    regexp: '^#?clean_requirements_on_remove'}
+  name: Ensure YUM Removes Previous Package Versions
+  tags: [clean_components_post_updating, low_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-80346-0, DISA-STIG-RHEL-07-020200]
+- check_mode: false
+  name: Check existence of yum on Fedora
+  register: yum_config_file
+  stat: {path: /etc/yum.conf}
+  when: ansible_distribution == "Fedora"
+- ini_file: {create: true, dest: '{{item}}', option: localpkg_gpgcheck, section: main,
+    value: 1}
+  name: Ensure GPG check Enabled for Local Packages (Yum)
+  tags: [ensure_gpgcheck_local_packages, high_severity, unknown_strategy, low_complexity,
+    medium_disruption, CCE-80347-8, DISA-STIG-RHEL-07-020060]
+  when: ansible_distribution == "RedHat" or ansible_distribution == "CentOS" or yum_config_file.stat.exists
+  with_items: /etc/yum.conf
+- ini_file: {create: true, dest: '{{item}}', option: localpkg_gpgcheck, section: main,
+    value: 1}
+  name: Ensure GPG check Enabled for Local Packages (DNF)
+  tags: [ensure_gpgcheck_local_packages, high_severity, unknown_strategy, low_complexity,
+    medium_disruption, CCE-80347-8, DISA-STIG-RHEL-07-020060]
+  when: ansible_distribution == "Fedora"
+  with_items: /etc/dnf/dnf.conf
+- name: Ensure aide is installed
+  package: name="{{item}}" state=present
+  tags: [package_aide_installed, medium_severity, enable_strategy, low_complexity,
+    low_disruption, CCE-27096-7, NIST-800-53-CM-3(d), NIST-800-53-CM-3(e), NIST-800-53-CM-6(d),
+    NIST-800-53-CM-6(3), NIST-800-53-SC-28, NIST-800-53-SI-7, PCI-DSS-Req-11.5, CJIS-5.10.1.3]
+  with_items: [aide]
+- name: Ensure AIDE is installed
+  package: name="{{item}}" state=present
+  tags: [aide_periodic_cron_checking, medium_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-26952-2, DISA-STIG-RHEL-07-020030]
+  with_items: [aide]
+- cron: {hour: 4, job: /usr/sbin/aide --check, minute: 5, name: run AIDE check, user: root,
+    weekday: 0}
+  name: Configure Periodic Execution of AIDE
+  tags: [aide_periodic_cron_checking, medium_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-26952-2, DISA-STIG-RHEL-07-020030]
+- changed_when: false
+  check_mode: false
+  failed_when: false
+  name: Read list of files with incorrect permissions
+  register: files_with_incorrect_permissions
+  shell: rpm -Va | grep '^.M' | cut -d ' ' -f5- | sed -r 's;^.*\s+(.+);\1;g'
+  tags: [rpm_verify_permissions, high_severity, restrict_strategy, high_complexity,
+    medium_disruption, CCE-27209-6, DISA-STIG-RHEL-07-010010]
+- name: Correct file permissions with RPM
+  shell: rpm --setperms $(rpm -qf '{{item}}')
+  tags: [rpm_verify_permissions, high_severity, restrict_strategy, high_complexity,
+    medium_disruption, CCE-27209-6, DISA-STIG-RHEL-07-010010]
+  when: files_with_incorrect_permissions.stdout_lines | length > 0
+  with_items: '{{ files_with_incorrect_permissions.stdout_lines }}'
+- name: 'Set fact: Package manager reinstall command (dnf)'
+  set_fact: {package_manager_reinstall_cmd: dnf reinstall -y}
+  tags: [rpm_verify_hashes, high_severity, unknown_strategy, high_complexity, medium_disruption,
+    CCE-27157-7, DISA-STIG-RHEL-07-010020]
+  when: ansible_distribution == "Fedora"
+- name: 'Set fact: Package manager reinstall command (yum)'
+  set_fact: {package_manager_reinstall_cmd: yum reinstall -y}
+  tags: [rpm_verify_hashes, high_severity, unknown_strategy, high_complexity, medium_disruption,
+    CCE-27157-7, DISA-STIG-RHEL-07-010020]
+  when: ansible_distribution == "RedHat"
+- changed_when: false
+  check_mode: false
+  name: Read files with incorrect hash
+  register: files_with_incorrect_hash
+  shell: rpm -Va | grep -E '^..5.* /(bin|sbin|lib|lib64|usr)/' | sed -r 's;^.*\s+(.+);\1;g'
+  tags: [rpm_verify_hashes, high_severity, unknown_strategy, high_complexity, medium_disruption,
+    CCE-27157-7, DISA-STIG-RHEL-07-010020]
+  when: package_manager_reinstall_cmd is defined
+- name: Reinstall packages of files with incorrect hash
+  shell: '{{package_manager_reinstall_cmd}} $(rpm -qf ''{{item}}'')'
+  tags: [rpm_verify_hashes, high_severity, unknown_strategy, high_complexity, medium_disruption,
+    CCE-27157-7, DISA-STIG-RHEL-07-010020]
+  when: package_manager_reinstall_cmd is defined and (files_with_incorrect_hash.stdout_lines
+    | length > 0)
+  with_items: '{{ files_with_incorrect_hash.stdout_lines }}'
+- ini_file: {create: true, dest: /etc/gdm/custom.conf, no_extra_spaces: true, option: AutomaticLoginEnable,
+    section: daemon, value: 'false'}
+  name: Disable GDM Automatic Login
+  tags: [gnome_gdm_disable_automatic_login, high_severity, unknown_strategy, low_complexity,
+    medium_disruption, CCE-80104-3, DISA-STIG-RHEL-07-010440]
+- ini_file: {create: true, dest: /etc/gdm/custom.conf, no_extra_spaces: true, option: TimedLoginEnable,
+    section: daemon, value: 'false'}
+  name: Disable GDM Guest Login
+  tags: [gnome_gdm_disable_guest_login, high_severity, unknown_strategy, low_complexity,
+    medium_disruption, CCE-80105-0, DISA-STIG-RHEL-07-010450]
+- ini_file: {create: true, dest: /etc/dconf/db/local.d/00-security-settings, option: idle-delay,
+    section: org/gnome/desktop/screensaver, value: '{{ inactivity_timeout_value }}'}
+  name: Set GNOME3 Screensaver Inactivity Timeout
+  tags: [dconf_gnome_screensaver_idle_delay, medium_severity, unknown_strategy, low_complexity,
+    medium_disruption, CCE-80110-0, DISA-STIG-RHEL-07-010070]
+- lineinfile: {create: true, line: /org/gnome/desktop/screensaver/idle-delay, path: /etc/dconf/db/local.d/locks/00-security-settings-lock,
+    regexp: ^/org/gnome/desktop/screensaver/idle-delay}
+  name: Prevent user modification of GNOME idle-delay
+  tags: [dconf_gnome_screensaver_idle_delay, medium_severity, unknown_strategy, low_complexity,
+    medium_disruption, CCE-80110-0, DISA-STIG-RHEL-07-010070]
+- ini_file: {create: true, dest: /etc/dconf/db/local.d/00-security-settings, option: idle_activation_enabled,
+    section: org/gnome/desktop/screensaver, value: 'true'}
+  name: Enable GNOME3 Screensaver Idle Activation
+  tags: [dconf_gnome_screensaver_idle_activation_enabled, medium_severity, unknown_strategy,
+    low_complexity, medium_disruption, CCE-80111-8, DISA-STIG-RHEL-07-010100]
+- lineinfile: {create: true, line: /org/gnome/desktop/screensaver/idle-activation-enabled,
+    path: /etc/dconf/db/local.d/locks/00-security-settings-lock, regexp: ^/org/gnome/desktop/screensaver/idle-activation-enabled}
+  name: Prevent user modification of GNOME idle_activation_enabled
+  tags: [dconf_gnome_screensaver_idle_activation_enabled, medium_severity, unknown_strategy,
+    low_complexity, medium_disruption, CCE-80111-8, DISA-STIG-RHEL-07-010100]
+- ini_file: {create: true, dest: /etc/dconf/db/local.d/00-security-settings, option: lock-enabled,
+    section: org/gnome/desktop/screensaver, value: 'true'}
+  name: Enable GNOME3 Screensaver Lock After Idle Period
+  tags: [dconf_gnome_screensaver_lock_enabled, medium_severity, unknown_strategy,
+    low_complexity, medium_disruption, CCE-80112-6, DISA-STIG-RHEL-07-010060]
+- lineinfile: {create: true, line: /org/gnome/desktop/screensaver/lock-enabled, path: /etc/dconf/db/local.d/locks/00-security-settings-lock,
+    regexp: ^/org/gnome/desktop/screensaver/lock-enabled}
+  name: Prevent user modification of GNOME lock-enabled
+  tags: [dconf_gnome_screensaver_lock_enabled, medium_severity, unknown_strategy,
+    low_complexity, medium_disruption, CCE-80112-6, DISA-STIG-RHEL-07-010060]
+- ini_file: {create: true, dest: /etc/dconf/db/local.d/00-security-settings, option: lock-delay,
+    section: org/gnome/desktop/screensaver, value: uint32 5}
+  name: Set GNOME3 Screensaver Lock Delay After Activation Period
+  tags: [dconf_gnome_screensaver_lock_delay, medium_severity, unknown_strategy, low_complexity,
+    medium_disruption, CCE-80370-0, DISA-STIG-RHEL-07-010110]
+- lineinfile: {create: true, line: /org/gnome/desktop/screensaver/lock-delay, path: /etc/dconf/db/local.d/locks/00-security-settings-lock,
+    regexp: ^/org/gnome/desktop/screensaver/lock-delay}
+  name: Prevent user modification of GNOME lock-delay
+  tags: [dconf_gnome_screensaver_lock_delay, medium_severity, unknown_strategy, low_complexity,
+    medium_disruption, CCE-80370-0, DISA-STIG-RHEL-07-010110]
+- check_mode: false
+  name: get back device associated to mountpoint
+  register: device_name
+  shell: mount | grep ' /home ' |cut -d ' ' -f 1
+  tags: [mount_option_home_nosuid, low_severity, configure_strategy, low_complexity,
+    high_disruption, CCE-81153-9, DISA-STIG-RHEL-07-021000]
+- check_mode: false
+  name: get back device previous mount option
+  register: device_cur_mountoption
+  shell: mount | grep ' /home ' | sed -re 's:.*\((.*)\):\1:'
+  tags: [mount_option_home_nosuid, low_severity, configure_strategy, low_complexity,
+    high_disruption, CCE-81153-9, DISA-STIG-RHEL-07-021000]
+- check_mode: false
+  name: get back device fstype
+  register: device_fstype
+  shell: mount | grep ' /home ' | cut -d ' ' -f 5
+  tags: [mount_option_home_nosuid, low_severity, configure_strategy, low_complexity,
+    high_disruption, CCE-81153-9, DISA-STIG-RHEL-07-021000]
+- mount: {fstype: '{{device_fstype.stdout}}', opts: '{{device_cur_mountoption.stdout}},nosuid',
+    path: /home, src: '{{device_name.stdout}}', state: mounted}
+  name: Ensure permission nosuid are set on /home
+  tags: [mount_option_home_nosuid, low_severity, configure_strategy, low_complexity,
+    high_disruption, CCE-81153-9, DISA-STIG-RHEL-07-021000]
+- lineinfile: create=yes dest="/etc/modprobe.d/{{item}}.conf" regexp="{{item}}" line="install
+    {{item}} /bin/true"
+  name: Ensure kernel module 'usb-storage' is disabled
+  tags: [kernel_module_usb-storage_disabled, medium_severity, disable_strategy, low_complexity,
+    medium_disruption, CCE-27277-3, DISA-STIG-RHEL-07-020100]
+  with_items: [usb-storage]
+- failed_when: service_result|failed and ('Could not find the requested service' not
+    in service_result.msg)
+  name: Disable service autofs
+  register: service_result
+  service: name="{{item}}" enabled="no" state="stopped"
+  tags: [service_autofs_disabled, medium_severity, disable_strategy, low_complexity,
+    low_disruption, CCE-27498-5, DISA-STIG-RHEL-07-020110]
+  with_items: [autofs]
+- name: Ensure sysctl kernel.randomize_va_space is set to 2
+  sysctl: {name: kernel.randomize_va_space, reload: true, state: present, value: 2}
+  tags: [sysctl_kernel_randomize_va_space, medium_severity, disable_strategy, low_complexity,
+    medium_disruption, CCE-27127-0, NIST-800-53-SC-30(2), NIST-800-171-3.1.7, DISA-STIG-RHEL-07-040201]
+- lineinfile: {create: true, line: 'SELINUX={{ var_selinux_state }}', path: /etc/sysconfig/selinux,
+    regexp: ^SELINUX=}
+  name: Ensure SELinux State is Enforcing
+  tags: [selinux_state, high_severity, restrict_strategy, low_complexity, low_disruption,
+    CCE-27334-2, DISA-STIG-RHEL-07-020210]
+- lineinfile: {create: true, line: 'SELINUXTYPE={{ var_selinux_policy_name }}', path: /etc/sysconfig/selinux,
+    regexp: ^SELINUXTYPE=}
+  name: Configure SELinux Policy
+  tags: [selinux_policytype, high_severity, restrict_strategy, low_complexity, low_disruption,
+    CCE-27279-9, DISA-STIG-RHEL-07-020220]
+- name: Prevent Log In to Accounts With Empty Password - system-auth
+  replace: {dest: /etc/pam.d/system-auth, follow: true, regexp: nullok}
+  tags: [no_empty_passwords, high_severity, configure_strategy, low_complexity, medium_disruption,
+    CCE-27286-4, DISA-STIG-RHEL-07-010290]
+- name: Prevent Log In to Accounts With Empty Password - password-auth
+  replace: {dest: /etc/pam.d/password-auth, follow: true, regexp: nullok}
+  tags: [no_empty_passwords, high_severity, configure_strategy, low_complexity, medium_disruption,
+    CCE-27286-4, DISA-STIG-RHEL-07-010290]
+- lineinfile: {create: true, dest: /etc/login.defs, line: 'PASS_MIN_DAYS {{ var_accounts_minimum_age_login_defs
+      }}', regexp: '^#?PASS_MIN_DAYS'}
+  name: Set Password Minimum Age
+  tags: [accounts_minimum_age_login_defs, medium_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-27002-5, DISA-STIG-RHEL-07-010230]
+- lineinfile: {create: true, dest: /etc/login.defs, line: 'PASS_MAX_DAYS {{ var_accounts_maximum_age_login_defs
+      }}', regexp: '^#?PASS_MAX_DAYS'}
+  name: Set Password Maximum Age
+  tags: [accounts_maximum_age_login_defs, medium_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-27051-2, DISA-STIG-RHEL-07-010250]
+- lineinfile: {create: true, dest: /etc/default/useradd, line: 'INACTIVE={{ var_account_disable_post_pw_expiration
+      }}', regexp: ^INACTIVE}
+  name: Set Account Expiration Following Inactivity
+  tags: [account_disable_post_pw_expiration, medium_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-27355-7, DISA-STIG-RHEL-07-010310]
+- name: Set Password Retry Prompts Permitted Per-Session - system-auth (change)
+  replace: {dest: /etc/pam.d/system-auth, follow: true, regexp: (^.*\spam_pwquality.so\s.*retry\s*=\s*)(\S+)(.*$),
+    replace: '\g<1>{{ var_password_pam_retry }}\g<3>'}
+  tags: [accounts_password_pam_retry, low_severity, configure_strategy, low_complexity,
+    medium_disruption, CCE-27160-1, DISA-STIG-RHEL-07-010119]
+- name: Set Password Retry Prompts Permitted Per-Session - system-auth (add)
+  replace: {dest: /etc/pam.d/system-auth, follow: true, regexp: '^.*\spam_pwquality.so\s(?!.*retry\s*=\s*).*$',
+    replace: '\g<0> retry={{ var_password_pam_retry }}'}
+  tags: [accounts_password_pam_retry, low_severity, configure_strategy, low_complexity,
+    medium_disruption, CCE-27160-1, DISA-STIG-RHEL-07-010119]
+- lineinfile: create=yes dest="/etc/security/pwquality.conf" regexp="^maxrepeat" line="maxrepeat
+    = {{ var_password_pam_maxrepeat }}"
+  name: Ensure PAM variable maxrepeat is set accordingly
+  tags: [accounts_password_pam_maxrepeat, medium_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-27333-4, DISA-STIG-RHEL-07-010180]
+- lineinfile: create=yes dest="/etc/security/pwquality.conf" regexp="^maxclassrepeat"
+    line="maxclassrepeat = {{ var_password_pam_maxclassrepeat }}"
+  name: Ensure PAM variable maxclassrepeat is set accordingly
+  tags: [accounts_password_pam_maxclassrepeat, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-27512-3, DISA-STIG-RHEL-07-010190]
+- lineinfile: create=yes dest="/etc/security/pwquality.conf" regexp="^dcredit" line="dcredit
+    = {{ var_password_pam_dcredit }}"
+  name: Ensure PAM variable dcredit is set accordingly
+  tags: [accounts_password_pam_dcredit, medium_severity, CCE-27214-6, DISA-STIG-RHEL-07-010140]
+- lineinfile: create=yes dest="/etc/security/pwquality.conf" regexp="^minlen" line="minlen
+    = {{ var_password_pam_minlen }}"
+  name: Ensure PAM variable minlen is set accordingly
+  tags: [accounts_password_pam_minlen, medium_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-27293-0, DISA-STIG-RHEL-07-010280]
+- lineinfile: create=yes dest="/etc/security/pwquality.conf" regexp="^ucredit" line="ucredit
+    = {{ var_password_pam_ucredit }}"
+  name: Ensure PAM variable ucredit is set accordingly
+  tags: [accounts_password_pam_ucredit, medium_severity, CCE-27200-5, DISA-STIG-RHEL-07-010120]
+- lineinfile: create=yes dest="/etc/security/pwquality.conf" regexp="^ocredit" line="ocredit
+    = {{ var_password_pam_ocredit }}"
+  name: Ensure PAM variable ocredit is set accordingly
+  tags: [accounts_password_pam_ocredit, medium_severity, CCE-27360-7, DISA-STIG-RHEL-07-010150]
+- lineinfile: create=yes dest="/etc/security/pwquality.conf" regexp="^lcredit" line="lcredit
+    = {{ var_password_pam_lcredit }}"
+  name: Ensure PAM variable lcredit is set accordingly
+  tags: [accounts_password_pam_lcredit, medium_severity, CCE-27345-8, DISA-STIG-RHEL-07-010130]
+- lineinfile: create=yes dest="/etc/security/pwquality.conf" regexp="^difok" line="difok
+    = {{ var_password_pam_difok }}"
+  name: Ensure PAM variable difok is set accordingly
+  tags: [accounts_password_pam_difok, medium_severity, CCE-26631-2, DISA-STIG-RHEL-07-010160]
+- lineinfile: create=yes dest="/etc/security/pwquality.conf" regexp="^minclass" line="minclass
+    = {{ var_password_pam_minclass }}"
+  name: Ensure PAM variable minclass is set accordingly
+  tags: [accounts_password_pam_minclass, medium_severity, CCE-27115-5, DISA-STIG-RHEL-07-010170]
+- name: set auth pam_faillock before pam_unix.so
+  pamd: {control: sufficient, module_arguments: 'preauth silent deny={{ var_accounts_passwords_pam_faillock_deny
+      }} unlock_time={{ var_accounts_passwords_pam_faillock_unlock_time }} fail_interval={{
+      var_accounts_passwords_pam_faillock_fail_interval }}', module_path: pam_unix.so,
+    name: system-auth, new_control: required, new_module_path: pam_faillock.so, new_type: auth,
+    state: before, type: auth}
+  tags: [accounts_passwords_pam_faillock_deny, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-27350-8, DISA-STIG-RHEL-07-010320]
+- name: set auth pam_faillock after pam_unix.so
+  pamd: {control: sufficient, module_arguments: 'preauth silent deny={{ var_accounts_passwords_pam_faillock_deny
+      }} unlock_time={{ var_accounts_passwords_pam_faillock_unlock_time }} fail_interval={{
+      var_accounts_passwords_pam_faillock_fail_interval }}', module_path: pam_unix.so,
+    name: system-auth, new_control: '[default=die]', new_module_path: pam_faillock.so,
+    new_type: auth, state: after, type: auth}
+  tags: [accounts_passwords_pam_faillock_deny, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-27350-8, DISA-STIG-RHEL-07-010320]
+- name: set account pam_faillock before pam_unix.so
+  pamd: {control: required, module_path: pam_unix.so, name: system-auth, new_control: required,
+    new_module_path: pam_faillock.so, new_type: account, state: before, type: account}
+  tags: [accounts_passwords_pam_faillock_deny, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-27350-8, DISA-STIG-RHEL-07-010320]
+- name: set auth pam_faillock before pam_unix.so
+  pamd: {control: sufficient, module_arguments: 'preauth silent even_deny_root deny={{
+      var_accounts_passwords_pam_faillock_deny }} unlock_time={{ var_accounts_passwords_pam_faillock_unlock_time
+      }} fail_interval={{ var_accounts_passwords_pam_faillock_fail_interval }}', module_path: pam_unix.so,
+    name: system-auth, new_control: required, new_module_path: pam_faillock.so, new_type: auth,
+    state: before, type: auth}
+  tags: [accounts_passwords_pam_faillock_deny_root, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-80353-6, DISA-STIG-RHEL-07-010330]
+- name: set auth pam_faillock after pam_unix.so
+  pamd: {control: sufficient, module_arguments: 'preauth silent even_deny_root deny={{
+      var_accounts_passwords_pam_faillock_deny }} unlock_time={{ var_accounts_passwords_pam_faillock_unlock_time
+      }} fail_interval={{ var_accounts_passwords_pam_faillock_fail_interval }}', module_path: pam_unix.so,
+    name: system-auth, new_control: '[default=die]', new_module_path: pam_faillock.so,
+    new_type: auth, state: after, type: auth}
+  tags: [accounts_passwords_pam_faillock_deny_root, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-80353-6, DISA-STIG-RHEL-07-010330]
+- name: set account pam_faillock before pam_unix.so
+  pamd: {control: required, module_path: pam_unix.so, name: system-auth, new_control: required,
+    new_module_path: pam_faillock.so, new_type: account, state: before, type: account}
+  tags: [accounts_passwords_pam_faillock_deny_root, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-80353-6, DISA-STIG-RHEL-07-010330]
+- name: Do not allow users to reuse recent passwords - system-auth (change)
+  replace: {dest: /etc/pam.d/system-auth, follow: true, regexp: ^(password\s+sufficient\s+pam_unix\.so\s.*remember\s*=\s*)(\S+)(.*)$,
+    replace: '\g<1>{{ var_password_pam_unix_remember }}\g<3>'}
+  tags: [accounts_password_pam_unix_remember, medium_severity, configure_strategy,
+    low_complexity, medium_disruption, CCE-26923-3, DISA-STIG-RHEL-07-010270]
+- name: Do not allow users to reuse recent passwords - system-auth (add)
+  replace: {dest: /etc/pam.d/system-auth, follow: true, regexp: '^password\s+sufficient\s+pam_unix\.so\s(?!.*remember\s*=\s*).*$',
+    replace: '\g<0> remember={{ var_password_pam_unix_remember }}'}
+  tags: [accounts_password_pam_unix_remember, medium_severity, configure_strategy,
+    low_complexity, medium_disruption, CCE-26923-3, DISA-STIG-RHEL-07-010270]
+- lineinfile: {dest: /etc/login.defs, line: ENCRYPT_METHOD SHA512, regexp: '^#?ENCRYPT_METHOD',
+    state: present}
+  name: Set Password Hashing Algorithm in /etc/login.defs
+  tags: [set_password_hashing_algorithm_logindefs, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-27124-7, DISA-STIG-RHEL-07-010210]
+- lineinfile: {dest: /etc/libuser.conf, insertafter: '^.default]', line: crypt_style
+      = sha512, regexp: '^#?crypt_style', state: present}
+  name: Set Password Hashing Algorithm in /etc/libuser.conf
+  tags: [set_password_hashing_algorithm_libuserconf, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-27053-8, DISA-STIG-RHEL-07-010220]
+- lineinfile: {create: true, dest: /etc/profile, line: 'TMOUT={{ var_accounts_tmout
+      }}', regexp: '^#?TMOUT'}
+  name: Set Interactive Session Timeout
+  tags: [accounts_tmout, medium_severity, restrict_strategy, low_complexity, low_disruption,
+    CCE-27557-8, DISA-STIG-RHEL-07-040160]
+- lineinfile: {dest: /etc/security/limits.conf, insertbefore: ^# End of file, line: '*           hard    maxlogins     {{
+      var_accounts_max_concurrent_login_sessions }}', regexp: '^#?\*.*maxlogins',
+    state: present}
+  name: Limit the Number of Concurrent Login Sessions Allowed Per User
+  tags: [accounts_max_concurrent_login_sessions, low_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-27081-9, DISA-STIG-RHEL-07-040000]
+- lineinfile: {dest: /etc/login.defs, line: 'FAIL_DELAY {{ var_accounts_fail_delay
+      }}', regexp: ^FAIL_DELAY}
+  name: Set accounts logon fail delay
+  tags: [accounts_logon_fail_delay, low_severity, CCE-80352-8, DISA-STIG-RHEL-07-010430]
+- lineinfile: {create: true, dest: /etc/login.defs, line: 'UMASK {{ var_accounts_user_umask
+      }}', regexp: ^UMASK}
+  name: Ensure the Default UMASK is Set Correctly
+  tags: [accounts_umask_etc_login_defs, low_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-80205-8, DISA-STIG-RHEL-07-020240]
+- name: Ensure screen is installed
+  package: name="{{item}}" state=present
+  tags: [package_screen_installed, medium_severity, enable_strategy, low_complexity,
+    low_disruption, CCE-27351-6, DISA-STIG-RHEL-07-010090]
+  with_items: [screen]
+- ini_file: {create: true, dest: /etc/dconf/db/local.d/00-security-settings, option: banner-message-enable,
+    section: org/gnome/login-screen, value: 'true'}
+  name: Enable GNOME3 Login Warning Banner
+  tags: [dconf_gnome_banner_enabled, medium_severity, unknown_strategy, low_complexity,
+    medium_disruption, CCE-26970-4, DISA-STIG-RHEL-07-010030]
+- lineinfile: {create: true, line: /org/gnome/login-screen/banner-message-enable,
+    path: /etc/dconf/db/local.d/locks/00-security-settings-lock, regexp: ^/org/gnome/login-screen/banner-message-enable}
+  name: Prevent user modification of GNOME banner-message-enabled
+  tags: [dconf_gnome_banner_enabled, medium_severity, unknown_strategy, low_complexity,
+    medium_disruption, CCE-26970-4, DISA-STIG-RHEL-07-010030]
+- file: {group: root, mode: 493, owner: root, path: '/etc/dconf/db/{{ item }}', state: directory}
+  name: Set the GNOME3 Login Warning Banner Text
+  tags: [dconf_gnome_login_banner_text, medium_severity, unknown_strategy, low_complexity,
+    medium_disruption, CCE-26892-0, DISA-STIG-RHEL-07-010040]
+  with_items: [gdm.d, gdm.d/locks]
+- file: {group: root, mode: 420, owner: root, path: '/etc/dconf/db/gdm.d/{{ item }}',
+    state: touch}
+  name: Set the GNOME3 Login Warning Banner Text
+  tags: [dconf_gnome_login_banner_text, medium_severity, unknown_strategy, low_complexity,
+    medium_disruption, CCE-26892-0, DISA-STIG-RHEL-07-010040]
+  with_items: [00-security-settings, locks/00-security-settings-lock]
+- ini_file: {create: true, dest: /etc/dconf/db/gdm.d/00-security-settings, option: banner-message-text,
+    section: org/gnome/login-screen, value: 'string ''{{ login_banner_text }}'''}
+  name: Set the GNOME3 Login Warning Banner Text
+  tags: [dconf_gnome_login_banner_text, medium_severity, unknown_strategy, low_complexity,
+    medium_disruption, CCE-26892-0, DISA-STIG-RHEL-07-010040]
+- lineinfile: {line: org/gnome/login-screen/banner-message-text, path: /etc/dconf/db/gdm.d/locks/00-security-settings-lock,
+    regexp: ^org/gnome/login-screen/banner-message-text$, state: present}
+  name: Prevent user modification of the GNOME3 Login Warning Banner Text
+  tags: [dconf_gnome_login_banner_text, medium_severity, unknown_strategy, low_complexity,
+    medium_disruption, CCE-26892-0, DISA-STIG-RHEL-07-010040]
+- name: Ensure sysctl net.ipv4.conf.default.send_redirects is set to 0
+  sysctl: {name: net.ipv4.conf.default.send_redirects, reload: true, state: present,
+    value: 0}
+  tags: [sysctl_net_ipv4_conf_default_send_redirects, medium_severity, disable_strategy,
+    low_complexity, medium_disruption, CCE-80156-3, DISA-STIG-RHEL-07-040650]
+- name: Ensure sysctl net.ipv4.conf.all.send_redirects is set to 0
+  sysctl: {name: net.ipv4.conf.all.send_redirects, reload: true, state: present, value: 0}
+  tags: [sysctl_net_ipv4_conf_all_send_redirects, medium_severity, disable_strategy,
+    low_complexity, medium_disruption, CCE-80156-3, DISA-STIG-RHEL-07-040660]
+- name: Ensure sysctl net.ipv4.ip_forward is set to 0
+  sysctl: {name: net.ipv4.ip_forward, reload: true, state: present, value: 0}
+  tags: [sysctl_net_ipv4_ip_forward, medium_severity, disable_strategy, low_complexity,
+    medium_disruption, CCE-80157-1, DISA-STIG-RHEL-07-040740]
+- name: Ensure sysctl net.ipv4.conf.all.accept_source_route is set
+  sysctl: {name: net.ipv4.conf.all.accept_source_route, reload: true, state: present,
+    value: '{{ sysctl_net_ipv4_conf_all_accept_source_route_value }}'}
+  tags: [sysctl_net_ipv4_conf_all_accept_source_route, medium_severity, disable_strategy,
+    low_complexity, medium_disruption, CCE-27434-0, DISA-STIG-RHEL-07-040610]
+- name: Ensure sysctl net.ipv4.conf.all.accept_redirects is set
+  sysctl: {name: net.ipv4.conf.all.accept_redirects, reload: true, state: present,
+    value: '{{ sysctl_net_ipv4_conf_all_accept_redirects_value }}'}
+  tags: [sysctl_net_ipv4_conf_all_accept_redirects, medium_severity, disable_strategy,
+    low_complexity, medium_disruption, CCE-80158-9, DISA-STIG-RHEL-07-040641]
+- name: Ensure sysctl net.ipv4.conf.default.accept_source_route is set
+  sysctl: {name: net.ipv4.conf.default.accept_source_route, reload: true, state: present,
+    value: '{{ sysctl_net_ipv4_conf_default_accept_source_route_value }}'}
+  tags: [sysctl_net_ipv4_conf_default_accept_source_route, medium_severity, disable_strategy,
+    low_complexity, medium_disruption, CCE-80162-1, DISA-STIG-RHEL-07-040620]
+- name: Ensure sysctl net.ipv4.conf.default.accept_redirects is set
+  sysctl: {name: net.ipv4.conf.default.accept_redirects, reload: true, state: present,
+    value: '{{ sysctl_net_ipv4_conf_default_accept_redirects_value }}'}
+  tags: [sysctl_net_ipv4_conf_default_accept_redirects, medium_severity, disable_strategy,
+    low_complexity, medium_disruption, CCE-80163-9, DISA-STIG-RHEL-07-040640]
+- name: Ensure sysctl net.ipv4.icmp_echo_ignore_broadcasts is set
+  sysctl: {name: net.ipv4.icmp_echo_ignore_broadcasts, reload: true, state: present,
+    value: '{{ sysctl_net_ipv4_icmp_echo_ignore_broadcasts_value }}'}
+  tags: [sysctl_net_ipv4_icmp_echo_ignore_broadcasts, medium_severity, disable_strategy,
+    low_complexity, medium_disruption, CCE-80165-4, DISA-STIG-RHEL-07-040630]
+- name: Ensure sysctl net.ipv6.conf.all.accept_source_route is set
+  sysctl: {name: net.ipv6.conf.all.accept_source_route, reload: true, state: present,
+    value: '{{ sysctl_net_ipv6_conf_all_accept_source_route_value }}'}
+  tags: [sysctl_net_ipv6_conf_all_accept_source_route, medium_severity, disable_strategy,
+    low_complexity, medium_disruption, CCE-80179-5, DISA-STIG-RHEL-07-040830]
+- name: Enable service firewalld
+  service: name="{{item}}" enabled="yes" state="started"
+  tags: [service_firewalld_enabled, medium_severity, enable_strategy, low_complexity,
+    low_disruption, CCE-27361-5, DISA-STIG-RHEL-07-040520]
+  with_items: [firewalld]
+- lineinfile: create=yes dest="/etc/modprobe.d/{{item}}.conf" regexp="{{item}}" line="install
+    {{item}} /bin/true"
+  name: Ensure kernel module 'dccp' is disabled
+  tags: [kernel_module_dccp_disabled, medium_severity, disable_strategy, low_complexity,
+    medium_disruption, CCE-26828-4, NIST-800-53-CM-7, NIST-800-171-3.4.6, CJIS-5.10.1,
+    DISA-STIG-RHEL-07-020101]
+  with_items: [dccp]
+- lineinfile: {create: true, dest: /etc/rsyslog.conf, line: '*.* @@{{ rsyslog_remote_loghost_address
+      }}', regexp: ^\*\.\*}
+  name: Set rsyslog remote loghost
+  tags: [rsyslog_remote_loghost, low_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-27343-3, DISA-STIG-RHEL-07-031000]
+- name: Enable service auditd
+  service: name="{{item}}" enabled="yes" state="started"
+  tags: [service_auditd_enabled, high_severity, enable_strategy, low_complexity, low_disruption,
+    CCE-27407-6, DISA-STIG-RHEL-07-030000]
+  with_items: [auditd]
+- lineinfile: {dest: /etc/audit/auditd.conf, line: 'space_left_action = {{ var_auditd_space_left_action
+      }}', regexp: ^space_left_action*}
+  name: Configure auditd space_left Action on Low Disk Space
+  tags: [auditd_data_retention_space_left_action, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-27375-5, NIST-800-53-AU-1(b), NIST-800-53-AU-4,
+    NIST-800-53-AU-5(1), NIST-800-53-AU-5(b), NIST-800-53-IR-5, NIST-800-171-3.3.1,
+    PCI-DSS-Req-10.7, CJIS-5.4.1.1]
+- lineinfile: {dest: /etc/audit/auditd.conf, line: 'action_mail_acct = {{ var_auditd_action_mail_acct
+      }}', state: present}
+  name: Configure auditd mail_acct Action on Low Disk Space
+  tags: [auditd_data_retention_action_mail_acct, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-27394-6, DISA-STIG-RHEL-07-030350]
+- name: Set architecture for audit group tasks
+  set_fact: {audit_arch: 'b{{ ansible_architecture | regex_replace(''.*(\d\d$)'',''\1'')
+      }}'}
+- find: {contains: -k audit_rules_usergroup_modification$, paths: /etc/audit/rules.d,
+    patterns: '*.rules', recurse: false}
+  name: Search /etc/audit/rules.d for other user/group modification audit rules
+  register: find_group
+- name: If existing user/group modification ruleset not found, use /etc/audit/rules.d/privileged.rules
+    as the recipient for the rule
+  set_fact:
+    all_files: [/etc/audit/rules.d/privileged.rules]
+  when: find_group.matched == 0
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files: ['{{ find_group.files | map(attribute=''path'') | list | first }}']
+  when: find_group.matched > 0
+- lineinfile: {create: true, line: -w /etc/group -p wa -k audit_rules_usergroup_modification,
+    path: '{{ all_files[0] }}'}
+  name: Inserts/replaces the group rule in rules.d when on x86
+  tags: [audit_rules_usergroup_modification_group, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-80433-6, DISA-STIG-RHEL-07-030871]
+- lineinfile: {dest: /etc/audit/audit.rules, line: '{{ item }}', state: present}
+  name: Inserts/replaces the group rule in /etc/audit/audit.rules
+  tags: [audit_rules_usergroup_modification_group, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-80433-6, DISA-STIG-RHEL-07-030871]
+  with_items: [-w /etc/group -p wa -k audit_rules_usergroup_modification]
+- name: Set architecture for audit gshadow tasks
+  set_fact: {audit_arch: 'b{{ ansible_architecture | regex_replace(''.*(\d\d$)'',''\1'')
+      }}'}
+- find: {contains: -k audit_rules_usergroup_modification$, paths: /etc/audit/rules.d,
+    patterns: '*.rules', recurse: false}
+  name: Search /etc/audit/rules.d for other user/group modification audit rules
+  register: find_gshadow
+- name: If existing user/group modification ruleset not found, use /etc/audit/rules.d/privileged.rules
+    as the recipient for the rule
+  set_fact:
+    all_files: [/etc/audit/rules.d/privileged.rules]
+  when: find_gshadow.matched == 0
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files: ['{{ find_gshadow.files | map(attribute=''path'') | list | first }}']
+  when: find_gshadow.matched > 0
+- lineinfile: {create: true, line: -w /etc/gshadow -p wa -k audit_rules_usergroup_modification,
+    path: '{{ all_files[0] }}'}
+  name: Inserts/replaces the gshadow rule in rules.d when on x86
+  tags: [audit_rules_usergroup_modification_gshadow, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-80432-8, DISA-STIG-RHEL-07-030872]
+- lineinfile: {dest: /etc/audit/audit.rules, line: '{{ item }}', state: present}
+  name: Inserts/replaces the gshadow rule in /etc/audit/audit.rules
+  tags: [audit_rules_usergroup_modification_gshadow, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-80432-8, DISA-STIG-RHEL-07-030872]
+  with_items: [-w /etc/gshadow -p wa -k audit_rules_usergroup_modification]
+- name: Set architecture for audit shadow tasks
+  set_fact: {audit_arch: 'b{{ ansible_architecture | regex_replace(''.*(\d\d$)'',''\1'')
+      }}'}
+- find: {contains: -k audit_rules_usergroup_modification$, paths: /etc/audit/rules.d,
+    patterns: '*.rules', recurse: false}
+  name: Search /etc/audit/rules.d for other user/group modification audit rules
+  register: find_shadow
+- name: If existing user/group modification ruleset not found, use /etc/audit/rules.d/privileged.rules
+    as the recipient for the rule
+  set_fact:
+    all_files: [/etc/audit/rules.d/privileged.rules]
+  when: find_shadow.matched == 0
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files: ['{{ find_shadow.files | map(attribute=''path'') | list | first }}']
+  when: find_shadow.matched > 0
+- lineinfile: {create: true, line: -w /etc/shadow -p wa -k audit_rules_usergroup_modification,
+    path: '{{ all_files[0] }}'}
+  name: Inserts/replaces the shadow rule in rules.d when on x86
+  tags: [audit_rules_usergroup_modification_shadow, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-80431-0, DISA-STIG-RHEL-07-030873]
+- lineinfile: {dest: /etc/audit/audit.rules, line: '{{ item }}', state: present}
+  name: Inserts/replaces the shadow rule in /etc/audit/audit.rules
+  tags: [audit_rules_usergroup_modification_shadow, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-80431-0, DISA-STIG-RHEL-07-030873]
+  with_items: [-w /etc/shadow -p wa -k audit_rules_usergroup_modification]
+- name: Set architecture for audit passwd tasks
+  set_fact: {audit_arch: 'b{{ ansible_architecture | regex_replace(''.*(\d\d$)'',''\1'')
+      }}'}
+- find: {contains: -k audit_rules_usergroup_modification$, paths: /etc/audit/rules.d,
+    patterns: '*.rules', recurse: false}
+  name: Search /etc/audit/rules.d for other user/group modification audit rules
+  register: find_passwd
+- name: If existing user/group modification ruleset not found, use /etc/audit/rules.d/privileged.rules
+    as the recipient for the rule
+  set_fact:
+    all_files: [/etc/audit/rules.d/privileged.rules]
+  when: find_passwd.matched == 0
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files: ['{{ find_passwd.files | map(attribute=''path'') | list | first }}']
+  when: find_passwd.matched > 0
+- lineinfile: {create: true, line: -w /etc/passwd -p wa -k audit_rules_usergroup_modification,
+    path: '{{ all_files[0] }}'}
+  name: Inserts/replaces the passwd rule in rules.d when on x86
+  tags: [audit_rules_usergroup_modification_passwd, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-80435-1, DISA-STIG-RHEL-07-030870]
+- lineinfile: {dest: /etc/audit/audit.rules, line: '{{ item }}', state: present}
+  name: Inserts/replaces the passwd rule in /etc/audit/audit.rules
+  tags: [audit_rules_usergroup_modification_passwd, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-80435-1, DISA-STIG-RHEL-07-030870]
+  with_items: [-w /etc/passwd -p wa -k audit_rules_usergroup_modification]
+- name: Set architecture for audit opasswd tasks
+  set_fact: {audit_arch: 'b{{ ansible_architecture | regex_replace(''.*(\d\d$)'',''\1'')
+      }}'}
+- find: {contains: -k audit_rules_usergroup_modification$, paths: /etc/audit/rules.d,
+    patterns: '*.rules', recurse: false}
+  name: Search /etc/audit/rules.d for other user/group modification audit rules
+  register: find_opasswd
+- name: If existing user/group modification ruleset not found, use /etc/audit/rules.d/privileged.rules
+    as the recipient for the rule
+  set_fact:
+    all_files: [/etc/audit/rules.d/privileged.rules]
+  when: find_opasswd.matched == 0
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files: ['{{ find_opasswd.files | map(attribute=''path'') | list | first }}']
+  when: find_opasswd.matched > 0
+- lineinfile: {create: true, line: -w /etc/security/opasswd -p wa -k audit_rules_usergroup_modification,
+    path: '{{ all_files[0] }}'}
+  name: Inserts/replaces the opasswd rule in rules.d when on x86
+  tags: [audit_rules_usergroup_modification_opasswd, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-80430-2, DISA-STIG-RHEL-07-030874]
+- lineinfile: {dest: /etc/audit/audit.rules, line: '{{ item }}', state: present}
+  name: Inserts/replaces the opasswd rule in /etc/audit/audit.rules
+  tags: [audit_rules_usergroup_modification_opasswd, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-80430-2, DISA-STIG-RHEL-07-030874]
+  with_items: [-w /etc/security/opasswd -p wa -k audit_rules_usergroup_modification]
+- name: Set architecture for audit chmod tasks
+  set_fact: {audit_arch: 'b{{ ansible_architecture | regex_replace(''.*(\d\d$)'',''\1'')
+      }}'}
+- find: {contains: -F key=perm_mod$, paths: /etc/audit/rules.d, patterns: '*.rules',
+    recurse: false}
+  name: Search /etc/audit/rules.d for other DAC audit rules
+  register: find_chmod
+- name: If existing DAC ruleset not found, use /etc/audit/rules.d/privileged.rules
+    as the recipient for the rule
+  set_fact:
+    all_files: [/etc/audit/rules.d/privileged.rules]
+  when: find_chmod.matched == 0
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files: ['{{ find_chmod.files | map(attribute=''path'') | list | first }}']
+  when: find_chmod.matched > 0
+- lineinfile: {create: true, line: '-a always,exit -F arch=b32 -S chmod -F auid>=1000
+      -F auid!=4294967295 -F key=perm_mod', path: '{{ all_files[0] }}'}
+  name: Inserts/replaces the chmod rule in rules.d when on x86
+  tags: [audit_rules_dac_modification_chmod, low_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-27339-1, DISA-STIG-RHEL-07-030410]
+- lineinfile: {create: true, line: '-a always,exit -F arch=b64 -S chmod -F auid>=1000
+      -F auid!=4294967295 -F key=perm_mod', path: '{{ all_files[0] }}'}
+  name: Inserts/replaces the chmod rule in rules.d when on x86_64
+  tags: [audit_rules_dac_modification_chmod, low_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-27339-1, DISA-STIG-RHEL-07-030410]
+  when: audit_arch == 'b64'
+- lineinfile: {dest: /etc/audit/audit.rules, line: '{{ item }}', state: present}
+  name: Inserts/replaces the chmod rule in /etc/audit/audit.rules when on x86
+  tags: [audit_rules_dac_modification_chmod, low_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-27339-1, DISA-STIG-RHEL-07-030410]
+  with_items: ['-a always,exit -F arch=b32 -S chmod -F auid>=1000 -F auid!=4294967295
+      -F key=perm_mod']
+- lineinfile: {create: true, dest: /etc/audit/audit.rules, line: '{{ item }}', state: present}
+  name: Inserts/replaces the chmod rule in audit.rules when on x86_64
+  tags: [audit_rules_dac_modification_chmod, low_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-27339-1, DISA-STIG-RHEL-07-030410]
+  when: audit_arch == 'b64'
+  with_items: ['-a always,exit -F arch=b64 -S chmod -F auid>=1000 -F auid!=4294967295
+      -F key=perm_mod']
+- name: Set architecture for audit chown tasks
+  set_fact: {audit_arch: 'b{{ ansible_architecture | regex_replace(''.*(\d\d$)'',''\1'')
+      }}'}
+- find: {contains: -F key=perm_mod$, paths: /etc/audit/rules.d, patterns: '*.rules',
+    recurse: false}
+  name: Search /etc/audit/rules.d for other DAC audit rules
+  register: find_chown
+- name: If existing DAC ruleset not found, use /etc/audit/rules.d/privileged.rules
+    as the recipient for the rule
+  set_fact:
+    all_files: [/etc/audit/rules.d/privileged.rules]
+  when: find_chown.matched == 0
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files: ['{{ find_chown.files | map(attribute=''path'') | list | first }}']
+  when: find_chown.matched > 0
+- lineinfile: {create: true, line: '-a always,exit -F arch=b32 -S chown -F auid>=1000
+      -F auid!=4294967295 -F key=perm_mod', path: '{{ all_files[0] }}'}
+  name: Inserts/replaces the chown rule in rules.d when on x86
+  tags: [audit_rules_dac_modification_chown, low_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-27364-9, DISA-STIG-RHEL-07-030370]
+- lineinfile: {create: true, line: '-a always,exit -F arch=b64 -S chown -F auid>=1000
+      -F auid!=4294967295 -F key=perm_mod', path: '{{ all_files[0] }}'}
+  name: Inserts/replaces the chown rule in rules.d when on x86_64
+  tags: [audit_rules_dac_modification_chown, low_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-27364-9, DISA-STIG-RHEL-07-030370]
+  when: audit_arch == 'b64'
+- lineinfile: {dest: /etc/audit/audit.rules, line: '{{ item }}', state: present}
+  name: Inserts/replaces the chown rule in /etc/audit/audit.rules when on x86
+  tags: [audit_rules_dac_modification_chown, low_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-27364-9, DISA-STIG-RHEL-07-030370]
+  with_items: ['-a always,exit -F arch=b32 -S chown -F auid>=1000 -F auid!=4294967295
+      -F key=perm_mod']
+- lineinfile: {create: true, dest: /etc/audit/audit.rules, line: '{{ item }}', state: present}
+  name: Inserts/replaces the chown rule in audit.rules when on x86_64
+  tags: [audit_rules_dac_modification_chown, low_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-27364-9, DISA-STIG-RHEL-07-030370]
+  when: audit_arch == 'b64'
+  with_items: ['-a always,exit -F arch=b64 -S chown -F auid>=1000 -F auid!=4294967295
+      -F key=perm_mod']
+- name: Set architecture for audit fchmod tasks
+  set_fact: {audit_arch: 'b{{ ansible_architecture | regex_replace(''.*(\d\d$)'',''\1'')
+      }}'}
+- find: {contains: -F key=perm_mod$, paths: /etc/audit/rules.d, patterns: '*.rules',
+    recurse: false}
+  name: Search /etc/audit/rules.d for other DAC audit rules
+  register: find_fchmod
+- name: If existing DAC ruleset not found, use /etc/audit/rules.d/privileged.rules
+    as the recipient for the rule
+  set_fact:
+    all_files: [/etc/audit/rules.d/privileged.rules]
+  when: find_fchmod.matched == 0
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files: ['{{ find_fchmod.files | map(attribute=''path'') | list | first }}']
+  when: find_fchmod.matched > 0
+- lineinfile: {create: true, line: '-a always,exit -F arch=b32 -S fchmod -F auid>=1000
+      -F auid!=4294967295 -F key=perm_mod', path: '{{ all_files[0] }}'}
+  name: Inserts/replaces the fchmod rule in rules.d when on x86
+  tags: [audit_rules_dac_modification_fchmod, low_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-27393-8, DISA-STIG-RHEL-07-030420]
+- lineinfile: {create: true, line: '-a always,exit -F arch=b64 -S fchmod -F auid>=1000
+      -F auid!=4294967295 -F key=perm_mod', path: '{{ all_files[0] }}'}
+  name: Inserts/replaces the fchmod rule in rules.d when on x86_64
+  tags: [audit_rules_dac_modification_fchmod, low_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-27393-8, DISA-STIG-RHEL-07-030420]
+  when: audit_arch == 'b64'
+- lineinfile: {dest: /etc/audit/audit.rules, line: '{{ item }}', state: present}
+  name: Inserts/replaces the fchmod rule in /etc/audit/audit.rules when on x86
+  tags: [audit_rules_dac_modification_fchmod, low_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-27393-8, DISA-STIG-RHEL-07-030420]
+  with_items: ['-a always,exit -F arch=b32 -S fchmod -F auid>=1000 -F auid!=4294967295
+      -F key=perm_mod']
+- lineinfile: {create: true, dest: /etc/audit/audit.rules, line: '{{ item }}', state: present}
+  name: Inserts/replaces the fchmod rule in audit.rules when on x86_64
+  tags: [audit_rules_dac_modification_fchmod, low_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-27393-8, DISA-STIG-RHEL-07-030420]
+  when: audit_arch == 'b64'
+  with_items: ['-a always,exit -F arch=b64 -S fchmod -F auid>=1000 -F auid!=4294967295
+      -F key=perm_mod']
+- name: Set architecture for audit fchmodat tasks
+  set_fact: {audit_arch: 'b{{ ansible_architecture | regex_replace(''.*(\d\d$)'',''\1'')
+      }}'}
+- find: {contains: -F key=perm_mod$, paths: /etc/audit/rules.d, patterns: '*.rules',
+    recurse: false}
+  name: Search /etc/audit/rules.d for other DAC audit rules
+  register: find_fchmodat
+- name: If existing DAC ruleset not found, use /etc/audit/rules.d/privileged.rules
+    as the recipient for the rule
+  set_fact:
+    all_files: [/etc/audit/rules.d/privileged.rules]
+  when: find_fchmodat.matched == 0
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files: ['{{ find_fchmodat.files | map(attribute=''path'') | list | first }}']
+  when: find_fchmodat.matched > 0
+- lineinfile: {create: true, line: '-a always,exit -F arch=b32 -S fchmodat -F auid>=1000
+      -F auid!=4294967295 -F key=perm_mod', path: '{{ all_files[0] }}'}
+  name: Inserts/replaces the fchmodat rule in rules.d when on x86
+  tags: [audit_rules_dac_modification_fchmodat, low_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-27388-8, DISA-STIG-RHEL-07-030430]
+- lineinfile: {create: true, line: '-a always,exit -F arch=b64 -S fchmodat -F auid>=1000
+      -F auid!=4294967295 -F key=perm_mod', path: '{{ all_files[0] }}'}
+  name: Inserts/replaces the fchmodat rule in rules.d when on x86_64
+  tags: [audit_rules_dac_modification_fchmodat, low_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-27388-8, DISA-STIG-RHEL-07-030430]
+  when: audit_arch == 'b64'
+- lineinfile: {dest: /etc/audit/audit.rules, line: '{{ item }}', state: present}
+  name: Inserts/replaces the fchmodat rule in /etc/audit/audit.rules when on x86
+  tags: [audit_rules_dac_modification_fchmodat, low_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-27388-8, DISA-STIG-RHEL-07-030430]
+  with_items: ['-a always,exit -F arch=b32 -S fchmodat -F auid>=1000 -F auid!=4294967295
+      -F key=perm_mod']
+- lineinfile: {create: true, dest: /etc/audit/audit.rules, line: '{{ item }}', state: present}
+  name: Inserts/replaces the fchmodat rule in audit.rules when on x86_64
+  tags: [audit_rules_dac_modification_fchmodat, low_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-27388-8, DISA-STIG-RHEL-07-030430]
+  when: audit_arch == 'b64'
+  with_items: ['-a always,exit -F arch=b64 -S fchmodat -F auid>=1000 -F auid!=4294967295
+      -F key=perm_mod']
+- name: Set architecture for audit fchown tasks
+  set_fact: {audit_arch: 'b{{ ansible_architecture | regex_replace(''.*(\d\d$)'',''\1'')
+      }}'}
+- find: {contains: -F key=perm_mod$, paths: /etc/audit/rules.d, patterns: '*.rules',
+    recurse: false}
+  name: Search /etc/audit/rules.d for other DAC audit rules
+  register: find_fchown
+- name: If existing DAC ruleset not found, use /etc/audit/rules.d/privileged.rules
+    as the recipient for the rule
+  set_fact:
+    all_files: [/etc/audit/rules.d/privileged.rules]
+  when: find_fchown.matched == 0
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files: ['{{ find_fchown.files | map(attribute=''path'') | list | first }}']
+  when: find_fchown.matched > 0
+- lineinfile: {create: true, line: '-a always,exit -F arch=b32 -S fchown -F auid>=1000
+      -F auid!=4294967295 -F key=perm_mod', path: '{{ all_files[0] }}'}
+  name: Inserts/replaces the fchown rule in rules.d when on x86
+  tags: [audit_rules_dac_modification_fchown, low_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-27356-5, DISA-STIG-RHEL-07-030380]
+- lineinfile: {create: true, line: '-a always,exit -F arch=b64 -S fchown -F auid>=1000
+      -F auid!=4294967295 -F key=perm_mod', path: '{{ all_files[0] }}'}
+  name: Inserts/replaces the fchown rule in rules.d when on x86_64
+  tags: [audit_rules_dac_modification_fchown, low_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-27356-5, DISA-STIG-RHEL-07-030380]
+  when: audit_arch == 'b64'
+- lineinfile: {dest: /etc/audit/audit.rules, line: '{{ item }}', state: present}
+  name: Inserts/replaces the fchown rule in /etc/audit/audit.rules when on x86
+  tags: [audit_rules_dac_modification_fchown, low_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-27356-5, DISA-STIG-RHEL-07-030380]
+  with_items: ['-a always,exit -F arch=b32 -S fchown -F auid>=1000 -F auid!=4294967295
+      -F key=perm_mod']
+- lineinfile: {create: true, dest: /etc/audit/audit.rules, line: '{{ item }}', state: present}
+  name: Inserts/replaces the fchown rule in audit.rules when on x86_64
+  tags: [audit_rules_dac_modification_fchown, low_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-27356-5, DISA-STIG-RHEL-07-030380]
+  when: audit_arch == 'b64'
+  with_items: ['-a always,exit -F arch=b64 -S fchown -F auid>=1000 -F auid!=4294967295
+      -F key=perm_mod']
+- name: Set architecture for audit fchownat tasks
+  set_fact: {audit_arch: 'b{{ ansible_architecture | regex_replace(''.*(\d\d$)'',''\1'')
+      }}'}
+- find: {contains: -F key=perm_mod$, paths: /etc/audit/rules.d, patterns: '*.rules',
+    recurse: false}
+  name: Search /etc/audit/rules.d for other DAC audit rules
+  register: find_fchownat
+- name: If existing DAC ruleset not found, use /etc/audit/rules.d/privileged.rules
+    as the recipient for the rule
+  set_fact:
+    all_files: [/etc/audit/rules.d/privileged.rules]
+  when: find_fchownat.matched == 0
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files: ['{{ find_fchownat.files | map(attribute=''path'') | list | first }}']
+  when: find_fchownat.matched > 0
+- lineinfile: {create: true, line: '-a always,exit -F arch=b32 -S fchownat -F auid>=1000
+      -F auid!=4294967295 -F key=perm_mod', path: '{{ all_files[0] }}'}
+  name: Inserts/replaces the fchownat rule in rules.d when on x86
+  tags: [audit_rules_dac_modification_fchownat, low_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-27387-0, DISA-STIG-RHEL-07-030400]
+- lineinfile: {create: true, line: '-a always,exit -F arch=b64 -S fchownat -F auid>=1000
+      -F auid!=4294967295 -F key=perm_mod', path: '{{ all_files[0] }}'}
+  name: Inserts/replaces the fchownat rule in rules.d when on x86_64
+  tags: [audit_rules_dac_modification_fchownat, low_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-27387-0, DISA-STIG-RHEL-07-030400]
+  when: audit_arch == 'b64'
+- lineinfile: {dest: /etc/audit/audit.rules, line: '{{ item }}', state: present}
+  name: Inserts/replaces the fchownat rule in /etc/audit/audit.rules when on x86
+  tags: [audit_rules_dac_modification_fchownat, low_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-27387-0, DISA-STIG-RHEL-07-030400]
+  with_items: ['-a always,exit -F arch=b32 -S fchownat -F auid>=1000 -F auid!=4294967295
+      -F key=perm_mod']
+- lineinfile: {create: true, dest: /etc/audit/audit.rules, line: '{{ item }}', state: present}
+  name: Inserts/replaces the fchownat rule in audit.rules when on x86_64
+  tags: [audit_rules_dac_modification_fchownat, low_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-27387-0, DISA-STIG-RHEL-07-030400]
+  when: audit_arch == 'b64'
+  with_items: ['-a always,exit -F arch=b64 -S fchownat -F auid>=1000 -F auid!=4294967295
+      -F key=perm_mod']
+- name: Set architecture for audit fremovexattr tasks
+  set_fact: {audit_arch: 'b{{ ansible_architecture | regex_replace(''.*(\d\d$)'',''\1'')
+      }}'}
+- find: {contains: -F key=perm_mod$, paths: /etc/audit/rules.d, patterns: '*.rules',
+    recurse: false}
+  name: Search /etc/audit/rules.d for other DAC audit rules
+  register: find_fremovexattr
+- name: If existing DAC ruleset not found, use /etc/audit/rules.d/privileged.rules
+    as the recipient for the rule
+  set_fact:
+    all_files: [/etc/audit/rules.d/privileged.rules]
+  when: find_fremovexattr.matched == 0
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files: ['{{ find_fremovexattr.files | map(attribute=''path'') | list | first
+        }}']
+  when: find_fremovexattr.matched > 0
+- lineinfile: {create: true, line: '-a always,exit -F arch=b32 -S fremovexattr -F
+      auid>=1000 -F auid!=4294967295 -F key=perm_mod', path: '{{ all_files[0] }}'}
+  name: Inserts/replaces the fremovexattr rule in rules.d when on x86
+  tags: [audit_rules_dac_modification_fremovexattr, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-27353-2, DISA-STIG-RHEL-07-030480]
+- lineinfile: {create: true, line: '-a always,exit -F arch=b64 -S fremovexattr -F
+      auid>=1000 -F auid!=4294967295 -F key=perm_mod', path: '{{ all_files[0] }}'}
+  name: Inserts/replaces the fremovexattr rule in rules.d when on x86_64
+  tags: [audit_rules_dac_modification_fremovexattr, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-27353-2, DISA-STIG-RHEL-07-030480]
+  when: audit_arch == 'b64'
+- lineinfile: {dest: /etc/audit/audit.rules, line: '{{ item }}', state: present}
+  name: Inserts/replaces the fremovexattr rule in /etc/audit/audit.rules when on x86
+  tags: [audit_rules_dac_modification_fremovexattr, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-27353-2, DISA-STIG-RHEL-07-030480]
+  with_items: ['-a always,exit -F arch=b32 -S fremovexattr -F auid>=1000 -F auid!=4294967295
+      -F key=perm_mod']
+- lineinfile: {create: true, dest: /etc/audit/audit.rules, line: '{{ item }}', state: present}
+  name: Inserts/replaces the fremovexattr rule in audit.rules when on x86_64
+  tags: [audit_rules_dac_modification_fremovexattr, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-27353-2, DISA-STIG-RHEL-07-030480]
+  when: audit_arch == 'b64'
+  with_items: ['-a always,exit -F arch=b64 -S fremovexattr -F auid>=1000 -F auid!=4294967295
+      -F key=perm_mod']
+- name: Set architecture for audit fsetxattr tasks
+  set_fact: {audit_arch: 'b{{ ansible_architecture | regex_replace(''.*(\d\d$)'',''\1'')
+      }}'}
+- find: {contains: -F key=perm_mod$, paths: /etc/audit/rules.d, patterns: '*.rules',
+    recurse: false}
+  name: Search /etc/audit/rules.d for other DAC audit rules
+  register: find_fsetxattr
+- name: If existing DAC ruleset not found, use /etc/audit/rules.d/privileged.rules
+    as the recipient for the rule
+  set_fact:
+    all_files: [/etc/audit/rules.d/privileged.rules]
+  when: find_fsetxattr.matched == 0
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files: ['{{ find_fsetxattr.files | map(attribute=''path'') | list | first
+        }}']
+  when: find_fsetxattr.matched > 0
+- lineinfile: {create: true, line: '-a always,exit -F arch=b32 -S fsetxattr -F auid>=1000
+      -F auid!=4294967295 -F key=perm_mod', path: '{{ all_files[0] }}'}
+  name: Inserts/replaces the fsetxattr rule in rules.d when on x86
+  tags: [audit_rules_dac_modification_fsetxattr, low_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-27389-6, DISA-STIG-RHEL-07-030450]
+- lineinfile: {create: true, line: '-a always,exit -F arch=b64 -S fsetxattr -F auid>=1000
+      -F auid!=4294967295 -F key=perm_mod', path: '{{ all_files[0] }}'}
+  name: Inserts/replaces the fsetxattr rule in rules.d when on x86_64
+  tags: [audit_rules_dac_modification_fsetxattr, low_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-27389-6, DISA-STIG-RHEL-07-030450]
+  when: audit_arch == 'b64'
+- lineinfile: {dest: /etc/audit/audit.rules, line: '{{ item }}', state: present}
+  name: Inserts/replaces the fsetxattr rule in /etc/audit/audit.rules when on x86
+  tags: [audit_rules_dac_modification_fsetxattr, low_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-27389-6, DISA-STIG-RHEL-07-030450]
+  with_items: ['-a always,exit -F arch=b32 -S fsetxattr -F auid>=1000 -F auid!=4294967295
+      -F key=perm_mod']
+- lineinfile: {create: true, dest: /etc/audit/audit.rules, line: '{{ item }}', state: present}
+  name: Inserts/replaces the fsetxattr rule in audit.rules when on x86_64
+  tags: [audit_rules_dac_modification_fsetxattr, low_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-27389-6, DISA-STIG-RHEL-07-030450]
+  when: audit_arch == 'b64'
+  with_items: ['-a always,exit -F arch=b64 -S fsetxattr -F auid>=1000 -F auid!=4294967295
+      -F key=perm_mod']
+- name: Set architecture for audit lchown tasks
+  set_fact: {audit_arch: 'b{{ ansible_architecture | regex_replace(''.*(\d\d$)'',''\1'')
+      }}'}
+- find: {contains: -F key=perm_mod$, paths: /etc/audit/rules.d, patterns: '*.rules',
+    recurse: false}
+  name: Search /etc/audit/rules.d for other DAC audit rules
+  register: find_lchown
+- name: If existing DAC ruleset not found, use /etc/audit/rules.d/privileged.rules
+    as the recipient for the rule
+  set_fact:
+    all_files: [/etc/audit/rules.d/privileged.rules]
+  when: find_lchown.matched == 0
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files: ['{{ find_lchown.files | map(attribute=''path'') | list | first }}']
+  when: find_lchown.matched > 0
+- lineinfile: {create: true, line: '-a always,exit -F arch=b32 -S lchown -F auid>=1000
+      -F auid!=4294967295 -F key=perm_mod', path: '{{ all_files[0] }}'}
+  name: Inserts/replaces the lchown rule in rules.d when on x86
+  tags: [audit_rules_dac_modification_lchown, low_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-27083-5, DISA-STIG-RHEL-07-030390]
+- lineinfile: {create: true, line: '-a always,exit -F arch=b64 -S lchown -F auid>=1000
+      -F auid!=4294967295 -F key=perm_mod', path: '{{ all_files[0] }}'}
+  name: Inserts/replaces the lchown rule in rules.d when on x86_64
+  tags: [audit_rules_dac_modification_lchown, low_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-27083-5, DISA-STIG-RHEL-07-030390]
+  when: audit_arch == 'b64'
+- lineinfile: {dest: /etc/audit/audit.rules, line: '{{ item }}', state: present}
+  name: Inserts/replaces the lchown rule in /etc/audit/audit.rules when on x86
+  tags: [audit_rules_dac_modification_lchown, low_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-27083-5, DISA-STIG-RHEL-07-030390]
+  with_items: ['-a always,exit -F arch=b32 -S lchown -F auid>=1000 -F auid!=4294967295
+      -F key=perm_mod']
+- lineinfile: {create: true, dest: /etc/audit/audit.rules, line: '{{ item }}', state: present}
+  name: Inserts/replaces the lchown rule in audit.rules when on x86_64
+  tags: [audit_rules_dac_modification_lchown, low_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-27083-5, DISA-STIG-RHEL-07-030390]
+  when: audit_arch == 'b64'
+  with_items: ['-a always,exit -F arch=b64 -S lchown -F auid>=1000 -F auid!=4294967295
+      -F key=perm_mod']
+- name: Set architecture for audit lremovexattr tasks
+  set_fact: {audit_arch: 'b{{ ansible_architecture | regex_replace(''.*(\d\d$)'',''\1'')
+      }}'}
+- find: {contains: -F key=perm_mod$, paths: /etc/audit/rules.d, patterns: '*.rules',
+    recurse: false}
+  name: Search /etc/audit/rules.d for other DAC audit rules
+  register: find_lremovexattr
+- name: If existing DAC ruleset not found, use /etc/audit/rules.d/privileged.rules
+    as the recipient for the rule
+  set_fact:
+    all_files: [/etc/audit/rules.d/privileged.rules]
+  when: find_lremovexattr.matched == 0
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files: ['{{ find_lremovexattr.files | map(attribute=''path'') | list | first
+        }}']
+  when: find_lremovexattr.matched > 0
+- lineinfile: {create: true, line: '-a always,exit -F arch=b32 -S lremovexattr -F
+      auid>=1000 -F auid!=4294967295 -F key=perm_mod', path: '{{ all_files[0] }}'}
+  name: Inserts/replaces the lremovexattr rule in rules.d when on x86
+  tags: [audit_rules_dac_modification_lremovexattr, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-27410-0, DISA-STIG-RHEL-07-030490]
+- lineinfile: {create: true, line: '-a always,exit -F arch=b64 -S lremovexattr -F
+      auid>=1000 -F auid!=4294967295 -F key=perm_mod', path: '{{ all_files[0] }}'}
+  name: Inserts/replaces the lremovexattr rule in rules.d when on x86_64
+  tags: [audit_rules_dac_modification_lremovexattr, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-27410-0, DISA-STIG-RHEL-07-030490]
+  when: audit_arch == 'b64'
+- lineinfile: {dest: /etc/audit/audit.rules, line: '{{ item }}', state: present}
+  name: Inserts/replaces the lremovexattr rule in /etc/audit/audit.rules when on x86
+  tags: [audit_rules_dac_modification_lremovexattr, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-27410-0, DISA-STIG-RHEL-07-030490]
+  with_items: ['-a always,exit -F arch=b32 -S lremovexattr -F auid>=1000 -F auid!=4294967295
+      -F key=perm_mod']
+- lineinfile: {create: true, dest: /etc/audit/audit.rules, line: '{{ item }}', state: present}
+  name: Inserts/replaces the lremovexattr rule in audit.rules when on x86_64
+  tags: [audit_rules_dac_modification_lremovexattr, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-27410-0, DISA-STIG-RHEL-07-030490]
+  when: audit_arch == 'b64'
+  with_items: ['-a always,exit -F arch=b64 -S lremovexattr -F auid>=1000 -F auid!=4294967295
+      -F key=perm_mod']
+- name: Set architecture for audit lsetxattr tasks
+  set_fact: {audit_arch: 'b{{ ansible_architecture | regex_replace(''.*(\d\d$)'',''\1'')
+      }}'}
+- find: {contains: -F key=perm_mod$, paths: /etc/audit/rules.d, patterns: '*.rules',
+    recurse: false}
+  name: Search /etc/audit/rules.d for other DAC audit rules
+  register: find_lsetxattr
+- name: If existing DAC ruleset not found, use /etc/audit/rules.d/privileged.rules
+    as the recipient for the rule
+  set_fact:
+    all_files: [/etc/audit/rules.d/privileged.rules]
+  when: find_lsetxattr.matched == 0
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files: ['{{ find_lsetxattr.files | map(attribute=''path'') | list | first
+        }}']
+  when: find_lsetxattr.matched > 0
+- lineinfile: {create: true, line: '-a always,exit -F arch=b32 -S lsetxattr -F auid>=1000
+      -F auid!=4294967295 -F key=perm_mod', path: '{{ all_files[0] }}'}
+  name: Inserts/replaces the lsetxattr rule in rules.d when on x86
+  tags: [audit_rules_dac_modification_lsetxattr, low_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-27280-7, DISA-STIG-RHEL-07-030460]
+- lineinfile: {create: true, line: '-a always,exit -F arch=b64 -S lsetxattr -F auid>=1000
+      -F auid!=4294967295 -F key=perm_mod', path: '{{ all_files[0] }}'}
+  name: Inserts/replaces the lsetxattr rule in rules.d when on x86_64
+  tags: [audit_rules_dac_modification_lsetxattr, low_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-27280-7, DISA-STIG-RHEL-07-030460]
+  when: audit_arch == 'b64'
+- lineinfile: {dest: /etc/audit/audit.rules, line: '{{ item }}', state: present}
+  name: Inserts/replaces the lsetxattr rule in /etc/audit/audit.rules when on x86
+  tags: [audit_rules_dac_modification_lsetxattr, low_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-27280-7, DISA-STIG-RHEL-07-030460]
+  with_items: ['-a always,exit -F arch=b32 -S lsetxattr -F auid>=1000 -F auid!=4294967295
+      -F key=perm_mod']
+- lineinfile: {create: true, dest: /etc/audit/audit.rules, line: '{{ item }}', state: present}
+  name: Inserts/replaces the lsetxattr rule in audit.rules when on x86_64
+  tags: [audit_rules_dac_modification_lsetxattr, low_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-27280-7, DISA-STIG-RHEL-07-030460]
+  when: audit_arch == 'b64'
+  with_items: ['-a always,exit -F arch=b64 -S lsetxattr -F auid>=1000 -F auid!=4294967295
+      -F key=perm_mod']
+- name: Set architecture for audit removexattr tasks
+  set_fact: {audit_arch: 'b{{ ansible_architecture | regex_replace(''.*(\d\d$)'',''\1'')
+      }}'}
+- find: {contains: -F key=perm_mod$, paths: /etc/audit/rules.d, patterns: '*.rules',
+    recurse: false}
+  name: Search /etc/audit/rules.d for other DAC audit rules
+  register: find_removexattr
+- name: If existing DAC ruleset not found, use /etc/audit/rules.d/privileged.rules
+    as the recipient for the rule
+  set_fact:
+    all_files: [/etc/audit/rules.d/privileged.rules]
+  when: find_removexattr.matched == 0
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files: ['{{ find_removexattr.files | map(attribute=''path'') | list | first
+        }}']
+  when: find_removexattr.matched > 0
+- lineinfile: {create: true, line: '-a always,exit -F arch=b32 -S removexattr -F auid>=1000
+      -F auid!=4294967295 -F key=perm_mod', path: '{{ all_files[0] }}'}
+  name: Inserts/replaces the removexattr rule in rules.d when on x86
+  tags: [audit_rules_dac_modification_removexattr, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-27367-2, DISA-STIG-RHEL-07-030470]
+- lineinfile: {create: true, line: '-a always,exit -F arch=b64 -S removexattr -F auid>=1000
+      -F auid!=4294967295 -F key=perm_mod', path: '{{ all_files[0] }}'}
+  name: Inserts/replaces the removexattr rule in rules.d when on x86_64
+  tags: [audit_rules_dac_modification_removexattr, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-27367-2, DISA-STIG-RHEL-07-030470]
+  when: audit_arch == 'b64'
+- lineinfile: {dest: /etc/audit/audit.rules, line: '{{ item }}', state: present}
+  name: Inserts/replaces the removexattr rule in /etc/audit/audit.rules when on x86
+  tags: [audit_rules_dac_modification_removexattr, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-27367-2, DISA-STIG-RHEL-07-030470]
+  with_items: ['-a always,exit -F arch=b32 -S removexattr -F auid>=1000 -F auid!=4294967295
+      -F key=perm_mod']
+- lineinfile: {create: true, dest: /etc/audit/audit.rules, line: '{{ item }}', state: present}
+  name: Inserts/replaces the removexattr rule in audit.rules when on x86_64
+  tags: [audit_rules_dac_modification_removexattr, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-27367-2, DISA-STIG-RHEL-07-030470]
+  when: audit_arch == 'b64'
+  with_items: ['-a always,exit -F arch=b64 -S removexattr -F auid>=1000 -F auid!=4294967295
+      -F key=perm_mod']
+- name: Set architecture for audit setxattr tasks
+  set_fact: {audit_arch: 'b{{ ansible_architecture | regex_replace(''.*(\d\d$)'',''\1'')
+      }}'}
+- find: {contains: -F key=perm_mod$, paths: /etc/audit/rules.d, patterns: '*.rules',
+    recurse: false}
+  name: Search /etc/audit/rules.d for other DAC audit rules
+  register: find_setxattr
+- name: If existing DAC ruleset not found, use /etc/audit/rules.d/privileged.rules
+    as the recipient for the rule
+  set_fact:
+    all_files: [/etc/audit/rules.d/privileged.rules]
+  when: find_setxattr.matched == 0
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files: ['{{ find_setxattr.files | map(attribute=''path'') | list | first }}']
+  when: find_setxattr.matched > 0
+- lineinfile: {create: true, line: '-a always,exit -F arch=b32 -S setxattr -F auid>=1000
+      -F auid!=4294967295 -F key=perm_mod', path: '{{ all_files[0] }}'}
+  name: Inserts/replaces the setxattr rule in rules.d when on x86
+  tags: [audit_rules_dac_modification_setxattr, low_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-27213-8, DISA-STIG-RHEL-07-030440]
+- lineinfile: {create: true, line: '-a always,exit -F arch=b64 -S setxattr -F auid>=1000
+      -F auid!=4294967295 -F key=perm_mod', path: '{{ all_files[0] }}'}
+  name: Inserts/replaces the setxattr rule in rules.d when on x86_64
+  tags: [audit_rules_dac_modification_setxattr, low_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-27213-8, DISA-STIG-RHEL-07-030440]
+  when: audit_arch == 'b64'
+- lineinfile: {dest: /etc/audit/audit.rules, line: '{{ item }}', state: present}
+  name: Inserts/replaces the setxattr rule in /etc/audit/audit.rules when on x86
+  tags: [audit_rules_dac_modification_setxattr, low_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-27213-8, DISA-STIG-RHEL-07-030440]
+  with_items: ['-a always,exit -F arch=b32 -S setxattr -F auid>=1000 -F auid!=4294967295
+      -F key=perm_mod']
+- lineinfile: {create: true, dest: /etc/audit/audit.rules, line: '{{ item }}', state: present}
+  name: Inserts/replaces the setxattr rule in audit.rules when on x86_64
+  tags: [audit_rules_dac_modification_setxattr, low_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-27213-8, DISA-STIG-RHEL-07-030440]
+  when: audit_arch == 'b64'
+  with_items: ['-a always,exit -F arch=b64 -S setxattr -F auid>=1000 -F auid!=4294967295
+      -F key=perm_mod']
+- name: Set architecture for audit tallylog tasks
+  set_fact: {audit_arch: 'b{{ ansible_architecture | regex_replace(''.*(\d\d$)'',''\1'')
+      }}'}
+- find: {contains: -k logins$, paths: /etc/audit/rules.d, patterns: '*.rules', recurse: false}
+  name: Search /etc/audit/rules.d for other user/group modification audit rules
+  register: find_tallylog
+- name: If existing user/group modification ruleset not found, use /etc/audit/rules.d/logins.rules
+    as the recipient for the rule
+  set_fact:
+    all_files: [/etc/audit/rules.d/logins.rules]
+  when: find_tallylog.matched == 0
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files: ['{{ find_tallylog.files | map(attribute=''path'') | list | first }}']
+  when: find_tallylog.matched > 0
+- lineinfile: {create: true, line: -w /var/log/tallylog -p wa -k logins, path: '{{
+      all_files[0] }}'}
+  name: Inserts/replaces the tallylog rule in rules.d when on x86
+  tags: [audit_rules_login_events_tallylog, medium_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-80382-5, DISA-STIG-RHEL-07-030600]
+- lineinfile: {dest: /etc/audit/audit.rules, line: '{{ item }}', state: present}
+  name: Inserts/replaces the tallylog rule in /etc/audit/audit.rules
+  tags: [audit_rules_login_events_tallylog, medium_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-80382-5, DISA-STIG-RHEL-07-030600]
+  with_items: [-w /var/log/tallylog -p wa -k logins]
+- name: Set architecture for audit faillock tasks
+  set_fact: {audit_arch: 'b{{ ansible_architecture | regex_replace(''.*(\d\d$)'',''\1'')
+      }}'}
+- find: {contains: -k logins$, paths: /etc/audit/rules.d, patterns: '*.rules', recurse: false}
+  name: Search /etc/audit/rules.d for other user/group modification audit rules
+  register: find_faillock
+- name: If existing user/group modification ruleset not found, use /etc/audit/rules.d/logins.rules
+    as the recipient for the rule
+  set_fact:
+    all_files: [/etc/audit/rules.d/logins.rules]
+  when: find_faillock.matched == 0
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files: ['{{ find_faillock.files | map(attribute=''path'') | list | first }}']
+  when: find_faillock.matched > 0
+- lineinfile: {create: true, line: -w /var/run/faillock -p wa -k logins, path: '{{
+      all_files[0] }}'}
+  name: Inserts/replaces the faillock rule in rules.d when on x86
+  tags: [audit_rules_login_events_faillock, medium_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-80383-3, DISA-STIG-RHEL-07-030610]
+- lineinfile: {dest: /etc/audit/audit.rules, line: '{{ item }}', state: present}
+  name: Inserts/replaces the faillock rule in /etc/audit/audit.rules
+  tags: [audit_rules_login_events_faillock, medium_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-80383-3, DISA-STIG-RHEL-07-030610]
+  with_items: [-w /var/run/faillock -p wa -k logins]
+- name: Set architecture for audit lastlog tasks
+  set_fact: {audit_arch: 'b{{ ansible_architecture | regex_replace(''.*(\d\d$)'',''\1'')
+      }}'}
+- find: {contains: -k logins$, paths: /etc/audit/rules.d, patterns: '*.rules', recurse: false}
+  name: Search /etc/audit/rules.d for other user/group modification audit rules
+  register: find_lastlog
+- name: If existing user/group modification ruleset not found, use /etc/audit/rules.d/logins.rules
+    as the recipient for the rule
+  set_fact:
+    all_files: [/etc/audit/rules.d/logins.rules]
+  when: find_lastlog.matched == 0
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files: ['{{ find_lastlog.files | map(attribute=''path'') | list | first }}']
+  when: find_lastlog.matched > 0
+- lineinfile: {create: true, line: -w /var/log/lastlog -p wa -k logins, path: '{{
+      all_files[0] }}'}
+  name: Inserts/replaces the lastlog rule in rules.d when on x86
+  tags: [audit_rules_login_events_lastlog, medium_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-80384-1, DISA-STIG-RHEL-07-030620]
+- lineinfile: {dest: /etc/audit/audit.rules, line: '{{ item }}', state: present}
+  name: Inserts/replaces the lastlog rule in /etc/audit/audit.rules
+  tags: [audit_rules_login_events_lastlog, medium_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-80384-1, DISA-STIG-RHEL-07-030620]
+  with_items: [-w /var/log/lastlog -p wa -k logins]
+- find: {contains: ^.*path=%PATH%.*$, paths: /etc/audit/rules.d, patterns: '*.rules',
+    recurse: false}
+  name: Search /etc/audit/rules.d for audit rule entries
+  register: find_creat
+- name: Use /etc/audit/rules.d/privileged.rules as the recipient for the rule
+  set_fact:
+    all_files: [/etc/audit/rules.d/privileged.rules]
+  when: find_creat.matched == 0
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files: ['{{ find_creat.files | map(attribute=''path'') | list | first }}']
+  when: find_creat.matched > 0
+- lineinfile: {create: true, line: '-a always,exit -F path=%PATH% -F perm=x -F auid>=1000
+      -F auid!=4294967295 -F key=privileged', path: '{{ all_files[0] }}'}
+  name: Inserts/replaces the creat rule in rules.d
+  tags: [audit_rules_unsuccessful_file_modification_creat, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-80385-8, DISA-STIG-RHEL-07-030500]
+- lineinfile: {create: true, line: '-a always,exit -F path=%PATH% -F perm=x -F auid>=1000
+      -F auid!=4294967295 -F key=privileged', path: /etc/audit/audit.rules}
+  name: Inserts/replaces the creat rule in audit.rules
+  tags: [audit_rules_unsuccessful_file_modification_creat, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-80385-8, DISA-STIG-RHEL-07-030500]
+- find: {contains: ^.*path=%PATH%.*$, paths: /etc/audit/rules.d, patterns: '*.rules',
+    recurse: false}
+  name: Search /etc/audit/rules.d for audit rule entries
+  register: find_open
+- name: Use /etc/audit/rules.d/privileged.rules as the recipient for the rule
+  set_fact:
+    all_files: [/etc/audit/rules.d/privileged.rules]
+  when: find_open.matched == 0
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files: ['{{ find_open.files | map(attribute=''path'') | list | first }}']
+  when: find_open.matched > 0
+- lineinfile: {create: true, line: '-a always,exit -F path=%PATH% -F perm=x -F auid>=1000
+      -F auid!=4294967295 -F key=privileged', path: '{{ all_files[0] }}'}
+  name: Inserts/replaces the open rule in rules.d
+  tags: [audit_rules_unsuccessful_file_modification_open, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-80386-6, DISA-STIG-RHEL-07-030510]
+- lineinfile: {create: true, line: '-a always,exit -F path=%PATH% -F perm=x -F auid>=1000
+      -F auid!=4294967295 -F key=privileged', path: /etc/audit/audit.rules}
+  name: Inserts/replaces the open rule in audit.rules
+  tags: [audit_rules_unsuccessful_file_modification_open, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-80386-6, DISA-STIG-RHEL-07-030510]
+- find: {contains: ^.*path=%PATH%.*$, paths: /etc/audit/rules.d, patterns: '*.rules',
+    recurse: false}
+  name: Search /etc/audit/rules.d for audit rule entries
+  register: find_openat
+- name: Use /etc/audit/rules.d/privileged.rules as the recipient for the rule
+  set_fact:
+    all_files: [/etc/audit/rules.d/privileged.rules]
+  when: find_openat.matched == 0
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files: ['{{ find_openat.files | map(attribute=''path'') | list | first }}']
+  when: find_openat.matched > 0
+- lineinfile: {create: true, line: '-a always,exit -F path=%PATH% -F perm=x -F auid>=1000
+      -F auid!=4294967295 -F key=privileged', path: '{{ all_files[0] }}'}
+  name: Inserts/replaces the openat rule in rules.d
+  tags: [audit_rules_unsuccessful_file_modification_openat, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-80387-4, DISA-STIG-RHEL-07-030520]
+- lineinfile: {create: true, line: '-a always,exit -F path=%PATH% -F perm=x -F auid>=1000
+      -F auid!=4294967295 -F key=privileged', path: /etc/audit/audit.rules}
+  name: Inserts/replaces the openat rule in audit.rules
+  tags: [audit_rules_unsuccessful_file_modification_openat, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-80387-4, DISA-STIG-RHEL-07-030520]
+- find: {contains: ^.*path=%PATH%.*$, paths: /etc/audit/rules.d, patterns: '*.rules',
+    recurse: false}
+  name: Search /etc/audit/rules.d for audit rule entries
+  register: find_open_by_handle_at
+- name: Use /etc/audit/rules.d/privileged.rules as the recipient for the rule
+  set_fact:
+    all_files: [/etc/audit/rules.d/privileged.rules]
+  when: find_open_by_handle_at.matched == 0
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files: ['{{ find_open_by_handle_at.files | map(attribute=''path'') | list
+        | first }}']
+  when: find_open_by_handle_at.matched > 0
+- lineinfile: {create: true, line: '-a always,exit -F path=%PATH% -F perm=x -F auid>=1000
+      -F auid!=4294967295 -F key=privileged', path: '{{ all_files[0] }}'}
+  name: Inserts/replaces the open_by_handle_at rule in rules.d
+  tags: [audit_rules_unsuccessful_file_modification_open_by_handle_at, medium_severity,
+    restrict_strategy, low_complexity, low_disruption, CCE-80388-2, DISA-STIG-RHEL-07-030530]
+- lineinfile: {create: true, line: '-a always,exit -F path=%PATH% -F perm=x -F auid>=1000
+      -F auid!=4294967295 -F key=privileged', path: /etc/audit/audit.rules}
+  name: Inserts/replaces the open_by_handle_at rule in audit.rules
+  tags: [audit_rules_unsuccessful_file_modification_open_by_handle_at, medium_severity,
+    restrict_strategy, low_complexity, low_disruption, CCE-80388-2, DISA-STIG-RHEL-07-030530]
+- find: {contains: ^.*path=%PATH%.*$, paths: /etc/audit/rules.d, patterns: '*.rules',
+    recurse: false}
+  name: Search /etc/audit/rules.d for audit rule entries
+  register: find_truncate
+- name: Use /etc/audit/rules.d/privileged.rules as the recipient for the rule
+  set_fact:
+    all_files: [/etc/audit/rules.d/privileged.rules]
+  when: find_truncate.matched == 0
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files: ['{{ find_truncate.files | map(attribute=''path'') | list | first }}']
+  when: find_truncate.matched > 0
+- lineinfile: {create: true, line: '-a always,exit -F path=%PATH% -F perm=x -F auid>=1000
+      -F auid!=4294967295 -F key=privileged', path: '{{ all_files[0] }}'}
+  name: Inserts/replaces the truncate rule in rules.d
+  tags: [audit_rules_unsuccessful_file_modification_truncate, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-80389-0, DISA-STIG-RHEL-07-030540]
+- lineinfile: {create: true, line: '-a always,exit -F path=%PATH% -F perm=x -F auid>=1000
+      -F auid!=4294967295 -F key=privileged', path: /etc/audit/audit.rules}
+  name: Inserts/replaces the truncate rule in audit.rules
+  tags: [audit_rules_unsuccessful_file_modification_truncate, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-80389-0, DISA-STIG-RHEL-07-030540]
+- find: {contains: ^.*path=%PATH%.*$, paths: /etc/audit/rules.d, patterns: '*.rules',
+    recurse: false}
+  name: Search /etc/audit/rules.d for audit rule entries
+  register: find_ftruncate
+- name: Use /etc/audit/rules.d/privileged.rules as the recipient for the rule
+  set_fact:
+    all_files: [/etc/audit/rules.d/privileged.rules]
+  when: find_ftruncate.matched == 0
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files: ['{{ find_ftruncate.files | map(attribute=''path'') | list | first
+        }}']
+  when: find_ftruncate.matched > 0
+- lineinfile: {create: true, line: '-a always,exit -F path=%PATH% -F perm=x -F auid>=1000
+      -F auid!=4294967295 -F key=privileged', path: '{{ all_files[0] }}'}
+  name: Inserts/replaces the ftruncate rule in rules.d
+  tags: [audit_rules_unsuccessful_file_modification_ftruncate, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-80390-8, DISA-STIG-RHEL-07-030550]
+- lineinfile: {create: true, line: '-a always,exit -F path=%PATH% -F perm=x -F auid>=1000
+      -F auid!=4294967295 -F key=privileged', path: /etc/audit/audit.rules}
+  name: Inserts/replaces the ftruncate rule in audit.rules
+  tags: [audit_rules_unsuccessful_file_modification_ftruncate, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-80390-8, DISA-STIG-RHEL-07-030550]
+- find: {contains: ^.*path=/usr/sbin/semanage.*$, paths: /etc/audit/rules.d, patterns: '*.rules',
+    recurse: false}
+  name: Search /etc/audit/rules.d for audit rule entries
+  register: find_semanage
+- name: Use /etc/audit/rules.d/privileged.rules as the recipient for the rule
+  set_fact:
+    all_files: [/etc/audit/rules.d/privileged.rules]
+  when: find_semanage.matched == 0
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files: ['{{ find_semanage.files | map(attribute=''path'') | list | first }}']
+  when: find_semanage.matched > 0
+- lineinfile: {create: true, line: '-a always,exit -F path=/usr/sbin/semanage -F perm=x
+      -F auid>=1000 -F auid!=4294967295 -F key=privileged', path: '{{ all_files[0]
+      }}'}
+  name: Inserts/replaces the semanage rule in rules.d
+  tags: [audit_rules_execution_semanage, medium_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-80391-6, DISA-STIG-RHEL-07-030560]
+- lineinfile: {create: true, line: '-a always,exit -F path=/usr/sbin/semanage -F perm=x
+      -F auid>=1000 -F auid!=4294967295 -F key=privileged', path: /etc/audit/audit.rules}
+  name: Inserts/replaces the semanage rule in audit.rules
+  tags: [audit_rules_execution_semanage, medium_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-80391-6, DISA-STIG-RHEL-07-030560]
+- find: {contains: ^.*path=/usr/sbin/setsebool.*$, paths: /etc/audit/rules.d, patterns: '*.rules',
+    recurse: false}
+  name: Search /etc/audit/rules.d for audit rule entries
+  register: find_setsebool
+- name: Use /etc/audit/rules.d/privileged.rules as the recipient for the rule
+  set_fact:
+    all_files: [/etc/audit/rules.d/privileged.rules]
+  when: find_setsebool.matched == 0
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files: ['{{ find_setsebool.files | map(attribute=''path'') | list | first
+        }}']
+  when: find_setsebool.matched > 0
+- lineinfile: {create: true, line: '-a always,exit -F path=/usr/sbin/setsebool -F
+      perm=x -F auid>=1000 -F auid!=4294967295 -F key=privileged', path: '{{ all_files[0]
+      }}'}
+  name: Inserts/replaces the setsebool rule in rules.d
+  tags: [audit_rules_execution_setsebool, medium_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-80392-4, DISA-STIG-RHEL-07-030570]
+- lineinfile: {create: true, line: '-a always,exit -F path=/usr/sbin/setsebool -F
+      perm=x -F auid>=1000 -F auid!=4294967295 -F key=privileged', path: /etc/audit/audit.rules}
+  name: Inserts/replaces the setsebool rule in audit.rules
+  tags: [audit_rules_execution_setsebool, medium_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-80392-4, DISA-STIG-RHEL-07-030570]
+- find: {contains: ^.*path=/usr/bin/chcon.*$, paths: /etc/audit/rules.d, patterns: '*.rules',
+    recurse: false}
+  name: Search /etc/audit/rules.d for audit rule entries
+  register: find_chcon
+- name: Use /etc/audit/rules.d/privileged.rules as the recipient for the rule
+  set_fact:
+    all_files: [/etc/audit/rules.d/privileged.rules]
+  when: find_chcon.matched == 0
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files: ['{{ find_chcon.files | map(attribute=''path'') | list | first }}']
+  when: find_chcon.matched > 0
+- lineinfile: {create: true, line: '-a always,exit -F path=/usr/bin/chcon -F perm=x
+      -F auid>=1000 -F auid!=4294967295 -F key=privileged', path: '{{ all_files[0]
+      }}'}
+  name: Inserts/replaces the chcon rule in rules.d
+  tags: [audit_rules_execution_chcon, medium_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-80393-2, DISA-STIG-RHEL-07-030580]
+- lineinfile: {create: true, line: '-a always,exit -F path=/usr/bin/chcon -F perm=x
+      -F auid>=1000 -F auid!=4294967295 -F key=privileged', path: /etc/audit/audit.rules}
+  name: Inserts/replaces the chcon rule in audit.rules
+  tags: [audit_rules_execution_chcon, medium_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-80393-2, DISA-STIG-RHEL-07-030580]
+- find: {contains: ^.*path=/usr/sbin/restorecon.*$, paths: /etc/audit/rules.d, patterns: '*.rules',
+    recurse: false}
+  name: Search /etc/audit/rules.d for audit rule entries
+  register: find_restorecon
+- name: Use /etc/audit/rules.d/privileged.rules as the recipient for the rule
+  set_fact:
+    all_files: [/etc/audit/rules.d/privileged.rules]
+  when: find_restorecon.matched == 0
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files: ['{{ find_restorecon.files | map(attribute=''path'') | list | first
+        }}']
+  when: find_restorecon.matched > 0
+- lineinfile: {create: true, line: '-a always,exit -F path=/usr/sbin/restorecon -F
+      perm=x -F auid>=1000 -F auid!=4294967295 -F key=privileged', path: '{{ all_files[0]
+      }}'}
+  name: Inserts/replaces the restorecon rule in rules.d
+  tags: [audit_rules_execution_restorecon, medium_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-80394-0, DISA-STIG-RHEL-07-030590]
+- lineinfile: {create: true, line: '-a always,exit -F path=/usr/sbin/restorecon -F
+      perm=x -F auid>=1000 -F auid!=4294967295 -F key=privileged', path: /etc/audit/audit.rules}
+  name: Inserts/replaces the restorecon rule in audit.rules
+  tags: [audit_rules_execution_restorecon, medium_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-80394-0, DISA-STIG-RHEL-07-030590]
+- check_mode: false
+  name: Search for privileged commands
+  register: find_result
+  shell: find / -xdev -type f -perm -4000 -o -type f -perm -2000 2>/dev/null | cat
+  tags: [audit_rules_privileged_commands, medium_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-27437-3, DISA-STIG-RHEL-07-030360]
+- find: {contains: '^.*path={{ item }} .*$', paths: /etc/audit/rules.d, patterns: '*.rules',
+    recurse: false}
+  name: Search /etc/audit/rules.d for audit rule entries
+  register: files_result
+  tags: [audit_rules_privileged_commands, medium_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-27437-3, DISA-STIG-RHEL-07-030360]
+  with_items: ['{{ find_result.stdout_lines }}']
+- lineinfile: {create: false, line: '-a always,exit -F path={{ item.0.item }} -F perm=x
+      -F auid>=1000 -F auid!=4294967295 -F key=privileged', path: '{{ item.1.path
+      }}', regexp: '^.*path={{ item.0.item }} .*$'}
+  name: Overwrites the rule in rules.d
+  tags: [audit_rules_privileged_commands, medium_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-27437-3, DISA-STIG-RHEL-07-030360]
+  with_subelements: ['{{ files_result.results }}', files]
+- lineinfile: {create: true, line: '-a always,exit -F path={{ item.item }} -F perm=x
+      -F auid>=1000 -F auid!=4294967295 -F key=privileged', path: /etc/audit/rules.d/privileged.rules}
+  name: Adds the rule in rules.d
+  tags: [audit_rules_privileged_commands, medium_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-27437-3, DISA-STIG-RHEL-07-030360]
+  when: item.matched == 0
+  with_items: ['{{ files_result.results }}']
+- lineinfile: {create: true, line: '-a always,exit -F path={{ item.item }} -F perm=x
+      -F auid>=1000 -F auid!=4294967295 -F key=privileged', path: /etc/audit/audit.rules,
+    regexp: '^.*path={{ item.item }} .*$'}
+  name: Inserts/replaces the rule in audit.rules
+  tags: [audit_rules_privileged_commands, medium_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-27437-3, DISA-STIG-RHEL-07-030360]
+  with_items: ['{{ files_result.results }}']
+- find: {contains: ^.*path=/usr/bin/passwd.*$, paths: /etc/audit/rules.d, patterns: '*.rules',
+    recurse: false}
+  name: Search /etc/audit/rules.d for audit rule entries
+  register: find_passwd
+- name: Use /etc/audit/rules.d/privileged.rules as the recipient for the rule
+  set_fact:
+    all_files: [/etc/audit/rules.d/privileged.rules]
+  when: find_passwd.matched == 0
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files: ['{{ find_passwd.files | map(attribute=''path'') | list | first }}']
+  when: find_passwd.matched > 0
+- lineinfile: {create: true, line: '-a always,exit -F path=/usr/bin/passwd -F perm=x
+      -F auid>=1000 -F auid!=4294967295 -F key=privileged', path: '{{ all_files[0]
+      }}'}
+  name: Inserts/replaces the passwd rule in rules.d
+  tags: [audit_rules_privileged_commands_passwd, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-80395-7, DISA-STIG-RHEL-07-030630]
+- lineinfile: {create: true, line: '-a always,exit -F path=/usr/bin/passwd -F perm=x
+      -F auid>=1000 -F auid!=4294967295 -F key=privileged', path: /etc/audit/audit.rules}
+  name: Inserts/replaces the passwd rule in audit.rules
+  tags: [audit_rules_privileged_commands_passwd, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-80395-7, DISA-STIG-RHEL-07-030630]
+- find: {contains: ^.*path=/usr/sbin/unix_chkpwd.*$, paths: /etc/audit/rules.d, patterns: '*.rules',
+    recurse: false}
+  name: Search /etc/audit/rules.d for audit rule entries
+  register: find_unix_chkpwd
+- name: Use /etc/audit/rules.d/privileged.rules as the recipient for the rule
+  set_fact:
+    all_files: [/etc/audit/rules.d/privileged.rules]
+  when: find_unix_chkpwd.matched == 0
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files: ['{{ find_unix_chkpwd.files | map(attribute=''path'') | list | first
+        }}']
+  when: find_unix_chkpwd.matched > 0
+- lineinfile: {create: true, line: '-a always,exit -F path=/usr/sbin/unix_chkpwd -F
+      perm=x -F auid>=1000 -F auid!=4294967295 -F key=privileged', path: '{{ all_files[0]
+      }}'}
+  name: Inserts/replaces the unix_chkpwd rule in rules.d
+  tags: [audit_rules_privileged_commands_unix_chkpwd, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-80396-5, DISA-STIG-RHEL-07-030640]
+- lineinfile: {create: true, line: '-a always,exit -F path=/usr/sbin/unix_chkpwd -F
+      perm=x -F auid>=1000 -F auid!=4294967295 -F key=privileged', path: /etc/audit/audit.rules}
+  name: Inserts/replaces the unix_chkpwd rule in audit.rules
+  tags: [audit_rules_privileged_commands_unix_chkpwd, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-80396-5, DISA-STIG-RHEL-07-030640]
+- find: {contains: ^.*path=/usr/bin/gpasswd.*$, paths: /etc/audit/rules.d, patterns: '*.rules',
+    recurse: false}
+  name: Search /etc/audit/rules.d for audit rule entries
+  register: find_gpasswd
+- name: Use /etc/audit/rules.d/privileged.rules as the recipient for the rule
+  set_fact:
+    all_files: [/etc/audit/rules.d/privileged.rules]
+  when: find_gpasswd.matched == 0
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files: ['{{ find_gpasswd.files | map(attribute=''path'') | list | first }}']
+  when: find_gpasswd.matched > 0
+- lineinfile: {create: true, line: '-a always,exit -F path=/usr/bin/gpasswd -F perm=x
+      -F auid>=1000 -F auid!=4294967295 -F key=privileged', path: '{{ all_files[0]
+      }}'}
+  name: Inserts/replaces the gpasswd rule in rules.d
+  tags: [audit_rules_privileged_commands_gpasswd, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-80397-3, DISA-STIG-RHEL-07-030650]
+- lineinfile: {create: true, line: '-a always,exit -F path=/usr/bin/gpasswd -F perm=x
+      -F auid>=1000 -F auid!=4294967295 -F key=privileged', path: /etc/audit/audit.rules}
+  name: Inserts/replaces the gpasswd rule in audit.rules
+  tags: [audit_rules_privileged_commands_gpasswd, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-80397-3, DISA-STIG-RHEL-07-030650]
+- find: {contains: ^.*path=/usr/bin/chage.*$, paths: /etc/audit/rules.d, patterns: '*.rules',
+    recurse: false}
+  name: Search /etc/audit/rules.d for audit rule entries
+  register: find_chage
+- name: Use /etc/audit/rules.d/privileged.rules as the recipient for the rule
+  set_fact:
+    all_files: [/etc/audit/rules.d/privileged.rules]
+  when: find_chage.matched == 0
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files: ['{{ find_chage.files | map(attribute=''path'') | list | first }}']
+  when: find_chage.matched > 0
+- lineinfile: {create: true, line: '-a always,exit -F path=/usr/bin/chage -F perm=x
+      -F auid>=1000 -F auid!=4294967295 -F key=privileged', path: '{{ all_files[0]
+      }}'}
+  name: Inserts/replaces the chage rule in rules.d
+  tags: [audit_rules_privileged_commands_chage, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-80398-1, DISA-STIG-RHEL-07-030660]
+- lineinfile: {create: true, line: '-a always,exit -F path=/usr/bin/chage -F perm=x
+      -F auid>=1000 -F auid!=4294967295 -F key=privileged', path: /etc/audit/audit.rules}
+  name: Inserts/replaces the chage rule in audit.rules
+  tags: [audit_rules_privileged_commands_chage, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-80398-1, DISA-STIG-RHEL-07-030660]
+- find: {contains: ^.*path=/usr/sbin/userhelper.*$, paths: /etc/audit/rules.d, patterns: '*.rules',
+    recurse: false}
+  name: Search /etc/audit/rules.d for audit rule entries
+  register: find_userhelper
+- name: Use /etc/audit/rules.d/privileged.rules as the recipient for the rule
+  set_fact:
+    all_files: [/etc/audit/rules.d/privileged.rules]
+  when: find_userhelper.matched == 0
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files: ['{{ find_userhelper.files | map(attribute=''path'') | list | first
+        }}']
+  when: find_userhelper.matched > 0
+- lineinfile: {create: true, line: '-a always,exit -F path=/usr/sbin/userhelper -F
+      perm=x -F auid>=1000 -F auid!=4294967295 -F key=privileged', path: '{{ all_files[0]
+      }}'}
+  name: Inserts/replaces the userhelper rule in rules.d
+  tags: [audit_rules_privileged_commands_userhelper, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-80399-9, DISA-STIG-RHEL-07-030670]
+- lineinfile: {create: true, line: '-a always,exit -F path=/usr/sbin/userhelper -F
+      perm=x -F auid>=1000 -F auid!=4294967295 -F key=privileged', path: /etc/audit/audit.rules}
+  name: Inserts/replaces the userhelper rule in audit.rules
+  tags: [audit_rules_privileged_commands_userhelper, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-80399-9, DISA-STIG-RHEL-07-030670]
+- find: {contains: ^.*path=/usr/bin/su.*$, paths: /etc/audit/rules.d, patterns: '*.rules',
+    recurse: false}
+  name: Search /etc/audit/rules.d for audit rule entries
+  register: find_su
+- name: Use /etc/audit/rules.d/privileged.rules as the recipient for the rule
+  set_fact:
+    all_files: [/etc/audit/rules.d/privileged.rules]
+  when: find_su.matched == 0
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files: ['{{ find_su.files | map(attribute=''path'') | list | first }}']
+  when: find_su.matched > 0
+- lineinfile: {create: true, line: '-a always,exit -F path=/usr/bin/su -F perm=x -F
+      auid>=1000 -F auid!=4294967295 -F key=privileged', path: '{{ all_files[0] }}'}
+  name: Inserts/replaces the su rule in rules.d
+  tags: [audit_rules_privileged_commands_su, medium_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-80400-5, DISA-STIG-RHEL-07-030680]
+- lineinfile: {create: true, line: '-a always,exit -F path=/usr/bin/su -F perm=x -F
+      auid>=1000 -F auid!=4294967295 -F key=privileged', path: /etc/audit/audit.rules}
+  name: Inserts/replaces the su rule in audit.rules
+  tags: [audit_rules_privileged_commands_su, medium_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-80400-5, DISA-STIG-RHEL-07-030680]
+- find: {contains: ^.*path=/usr/bin/sudo.*$, paths: /etc/audit/rules.d, patterns: '*.rules',
+    recurse: false}
+  name: Search /etc/audit/rules.d for audit rule entries
+  register: find_sudo
+- name: Use /etc/audit/rules.d/privileged.rules as the recipient for the rule
+  set_fact:
+    all_files: [/etc/audit/rules.d/privileged.rules]
+  when: find_sudo.matched == 0
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files: ['{{ find_sudo.files | map(attribute=''path'') | list | first }}']
+  when: find_sudo.matched > 0
+- lineinfile: {create: true, line: '-a always,exit -F path=/usr/bin/sudo -F perm=x
+      -F auid>=1000 -F auid!=4294967295 -F key=privileged', path: '{{ all_files[0]
+      }}'}
+  name: Inserts/replaces the sudo rule in rules.d
+  tags: [audit_rules_privileged_commands_sudo, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-80401-3, DISA-STIG-RHEL-07-030690]
+- lineinfile: {create: true, line: '-a always,exit -F path=/usr/bin/sudo -F perm=x
+      -F auid>=1000 -F auid!=4294967295 -F key=privileged', path: /etc/audit/audit.rules}
+  name: Inserts/replaces the sudo rule in audit.rules
+  tags: [audit_rules_privileged_commands_sudo, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-80401-3, DISA-STIG-RHEL-07-030690]
+- find: {contains: ^.*path=/usr/bin/sudoedit.*$, paths: /etc/audit/rules.d, patterns: '*.rules',
+    recurse: false}
+  name: Search /etc/audit/rules.d for audit rule entries
+  register: find_sudoedit
+- name: Use /etc/audit/rules.d/privileged.rules as the recipient for the rule
+  set_fact:
+    all_files: [/etc/audit/rules.d/privileged.rules]
+  when: find_sudoedit.matched == 0
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files: ['{{ find_sudoedit.files | map(attribute=''path'') | list | first }}']
+  when: find_sudoedit.matched > 0
+- lineinfile: {create: true, line: '-a always,exit -F path=/usr/bin/sudoedit -F perm=x
+      -F auid>=1000 -F auid!=4294967295 -F key=privileged', path: '{{ all_files[0]
+      }}'}
+  name: Inserts/replaces the sudoedit rule in rules.d
+  tags: [audit_rules_privileged_commands_sudoedit, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-80402-1, DISA-STIG-RHEL-07-030730]
+- lineinfile: {create: true, line: '-a always,exit -F path=/usr/bin/sudoedit -F perm=x
+      -F auid>=1000 -F auid!=4294967295 -F key=privileged', path: /etc/audit/audit.rules}
+  name: Inserts/replaces the sudoedit rule in audit.rules
+  tags: [audit_rules_privileged_commands_sudoedit, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-80402-1, DISA-STIG-RHEL-07-030730]
+- find: {contains: ^.*path=/usr/bin/newgrp.*$, paths: /etc/audit/rules.d, patterns: '*.rules',
+    recurse: false}
+  name: Search /etc/audit/rules.d for audit rule entries
+  register: find_newgrp
+- name: Use /etc/audit/rules.d/privileged.rules as the recipient for the rule
+  set_fact:
+    all_files: [/etc/audit/rules.d/privileged.rules]
+  when: find_newgrp.matched == 0
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files: ['{{ find_newgrp.files | map(attribute=''path'') | list | first }}']
+  when: find_newgrp.matched > 0
+- lineinfile: {create: true, line: '-a always,exit -F path=/usr/bin/newgrp -F perm=x
+      -F auid>=1000 -F auid!=4294967295 -F key=privileged', path: '{{ all_files[0]
+      }}'}
+  name: Inserts/replaces the newgrp rule in rules.d
+  tags: [audit_rules_privileged_commands_newgrp, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-80403-9, DISA-STIG-RHEL-07-030710]
+- lineinfile: {create: true, line: '-a always,exit -F path=/usr/bin/newgrp -F perm=x
+      -F auid>=1000 -F auid!=4294967295 -F key=privileged', path: /etc/audit/audit.rules}
+  name: Inserts/replaces the newgrp rule in audit.rules
+  tags: [audit_rules_privileged_commands_newgrp, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-80403-9, DISA-STIG-RHEL-07-030710]
+- find: {contains: ^.*path=/usr/bin/chsh.*$, paths: /etc/audit/rules.d, patterns: '*.rules',
+    recurse: false}
+  name: Search /etc/audit/rules.d for audit rule entries
+  register: find_chsh
+- name: Use /etc/audit/rules.d/privileged.rules as the recipient for the rule
+  set_fact:
+    all_files: [/etc/audit/rules.d/privileged.rules]
+  when: find_chsh.matched == 0
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files: ['{{ find_chsh.files | map(attribute=''path'') | list | first }}']
+  when: find_chsh.matched > 0
+- lineinfile: {create: true, line: '-a always,exit -F path=/usr/bin/chsh -F perm=x
+      -F auid>=1000 -F auid!=4294967295 -F key=privileged', path: '{{ all_files[0]
+      }}'}
+  name: Inserts/replaces the chsh rule in rules.d
+  tags: [audit_rules_privileged_commands_chsh, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-80404-7, DISA-STIG-RHEL-07-030720]
+- lineinfile: {create: true, line: '-a always,exit -F path=/usr/bin/chsh -F perm=x
+      -F auid>=1000 -F auid!=4294967295 -F key=privileged', path: /etc/audit/audit.rules}
+  name: Inserts/replaces the chsh rule in audit.rules
+  tags: [audit_rules_privileged_commands_chsh, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-80404-7, DISA-STIG-RHEL-07-030720]
+- find: {contains: ^.*path=/usr/bin/umount.*$, paths: /etc/audit/rules.d, patterns: '*.rules',
+    recurse: false}
+  name: Search /etc/audit/rules.d for audit rule entries
+  register: find_umount
+- name: Use /etc/audit/rules.d/privileged.rules as the recipient for the rule
+  set_fact:
+    all_files: [/etc/audit/rules.d/privileged.rules]
+  when: find_umount.matched == 0
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files: ['{{ find_umount.files | map(attribute=''path'') | list | first }}']
+  when: find_umount.matched > 0
+- lineinfile: {create: true, line: '-a always,exit -F path=/usr/bin/umount -F perm=x
+      -F auid>=1000 -F auid!=4294967295 -F key=privileged', path: '{{ all_files[0]
+      }}'}
+  name: Inserts/replaces the umount rule in rules.d
+  tags: [audit_rules_privileged_commands_umount, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-80405-4, DISA-STIG-RHEL-07-030750]
+- lineinfile: {create: true, line: '-a always,exit -F path=/usr/bin/umount -F perm=x
+      -F auid>=1000 -F auid!=4294967295 -F key=privileged', path: /etc/audit/audit.rules}
+  name: Inserts/replaces the umount rule in audit.rules
+  tags: [audit_rules_privileged_commands_umount, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-80405-4, DISA-STIG-RHEL-07-030750]
+- find: {contains: ^.*path=/usr/sbin/postdrop.*$, paths: /etc/audit/rules.d, patterns: '*.rules',
+    recurse: false}
+  name: Search /etc/audit/rules.d for audit rule entries
+  register: find_postdrop
+- name: Use /etc/audit/rules.d/privileged.rules as the recipient for the rule
+  set_fact:
+    all_files: [/etc/audit/rules.d/privileged.rules]
+  when: find_postdrop.matched == 0
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files: ['{{ find_postdrop.files | map(attribute=''path'') | list | first }}']
+  when: find_postdrop.matched > 0
+- lineinfile: {create: true, line: '-a always,exit -F path=/usr/sbin/postdrop -F perm=x
+      -F auid>=1000 -F auid!=4294967295 -F key=privileged', path: '{{ all_files[0]
+      }}'}
+  name: Inserts/replaces the postdrop rule in rules.d
+  tags: [audit_rules_privileged_commands_postdrop, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-80406-2, DISA-STIG-RHEL-07-030760]
+- lineinfile: {create: true, line: '-a always,exit -F path=/usr/sbin/postdrop -F perm=x
+      -F auid>=1000 -F auid!=4294967295 -F key=privileged', path: /etc/audit/audit.rules}
+  name: Inserts/replaces the postdrop rule in audit.rules
+  tags: [audit_rules_privileged_commands_postdrop, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-80406-2, DISA-STIG-RHEL-07-030760]
+- find: {contains: ^.*path=/usr/sbin/postqueue.*$, paths: /etc/audit/rules.d, patterns: '*.rules',
+    recurse: false}
+  name: Search /etc/audit/rules.d for audit rule entries
+  register: find_postqueue
+- name: Use /etc/audit/rules.d/privileged.rules as the recipient for the rule
+  set_fact:
+    all_files: [/etc/audit/rules.d/privileged.rules]
+  when: find_postqueue.matched == 0
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files: ['{{ find_postqueue.files | map(attribute=''path'') | list | first
+        }}']
+  when: find_postqueue.matched > 0
+- lineinfile: {create: true, line: '-a always,exit -F path=/usr/sbin/postqueue -F
+      perm=x -F auid>=1000 -F auid!=4294967295 -F key=privileged', path: '{{ all_files[0]
+      }}'}
+  name: Inserts/replaces the postqueue rule in rules.d
+  tags: [audit_rules_privileged_commands_postqueue, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-80407-0, DISA-STIG-RHEL-07-030770]
+- lineinfile: {create: true, line: '-a always,exit -F path=/usr/sbin/postqueue -F
+      perm=x -F auid>=1000 -F auid!=4294967295 -F key=privileged', path: /etc/audit/audit.rules}
+  name: Inserts/replaces the postqueue rule in audit.rules
+  tags: [audit_rules_privileged_commands_postqueue, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-80407-0, DISA-STIG-RHEL-07-030770]
+- find: {contains: ^.*path=/usr/libexec/openssh/ssh-keysign.*$, paths: /etc/audit/rules.d,
+    patterns: '*.rules', recurse: false}
+  name: Search /etc/audit/rules.d for audit rule entries
+  register: find_ssh_keysign
+- name: Use /etc/audit/rules.d/privileged.rules as the recipient for the rule
+  set_fact:
+    all_files: [/etc/audit/rules.d/privileged.rules]
+  when: find_ssh_keysign.matched == 0
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files: ['{{ find_ssh_keysign.files | map(attribute=''path'') | list | first
+        }}']
+  when: find_ssh_keysign.matched > 0
+- lineinfile: {create: true, line: '-a always,exit -F path=/usr/libexec/openssh/ssh-keysign
+      -F perm=x -F auid>=1000 -F auid!=4294967295 -F key=privileged', path: '{{ all_files[0]
+      }}'}
+  name: Inserts/replaces the ssh_keysign rule in rules.d
+  tags: [audit_rules_privileged_commands_ssh_keysign, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-80408-8, DISA-STIG-RHEL-07-030780]
+- lineinfile: {create: true, line: '-a always,exit -F path=/usr/libexec/openssh/ssh-keysign
+      -F perm=x -F auid>=1000 -F auid!=4294967295 -F key=privileged', path: /etc/audit/audit.rules}
+  name: Inserts/replaces the ssh_keysign rule in audit.rules
+  tags: [audit_rules_privileged_commands_ssh_keysign, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-80408-8, DISA-STIG-RHEL-07-030780]
+- find: {contains: ^.*path=/usr/bin/crontab.*$, paths: /etc/audit/rules.d, patterns: '*.rules',
+    recurse: false}
+  name: Search /etc/audit/rules.d for audit rule entries
+  register: find_crontab
+- name: Use /etc/audit/rules.d/privileged.rules as the recipient for the rule
+  set_fact:
+    all_files: [/etc/audit/rules.d/privileged.rules]
+  when: find_crontab.matched == 0
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files: ['{{ find_crontab.files | map(attribute=''path'') | list | first }}']
+  when: find_crontab.matched > 0
+- lineinfile: {create: true, line: '-a always,exit -F path=/usr/bin/crontab -F perm=x
+      -F auid>=1000 -F auid!=4294967295 -F key=privileged', path: '{{ all_files[0]
+      }}'}
+  name: Inserts/replaces the crontab rule in rules.d
+  tags: [audit_rules_privileged_commands_crontab, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-80410-4, DISA-STIG-RHEL-07-030800]
+- lineinfile: {create: true, line: '-a always,exit -F path=/usr/bin/crontab -F perm=x
+      -F auid>=1000 -F auid!=4294967295 -F key=privileged', path: /etc/audit/audit.rules}
+  name: Inserts/replaces the crontab rule in audit.rules
+  tags: [audit_rules_privileged_commands_crontab, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-80410-4, DISA-STIG-RHEL-07-030800]
+- find: {contains: ^.*path=/usr/sbin/pam_timestamp_check.*$, paths: /etc/audit/rules.d,
+    patterns: '*.rules', recurse: false}
+  name: Search /etc/audit/rules.d for audit rule entries
+  register: find_pam_timestamp_check
+- name: Use /etc/audit/rules.d/privileged.rules as the recipient for the rule
+  set_fact:
+    all_files: [/etc/audit/rules.d/privileged.rules]
+  when: find_pam_timestamp_check.matched == 0
+- name: Use matched file as the recipient for the rule
+  set_fact:
+    all_files: ['{{ find_pam_timestamp_check.files | map(attribute=''path'') | list
+        | first }}']
+  when: find_pam_timestamp_check.matched > 0
+- lineinfile: {create: true, line: '-a always,exit -F path=/usr/sbin/pam_timestamp_check
+      -F perm=x -F auid>=1000 -F auid!=4294967295 -F key=privileged', path: '{{ all_files[0]
+      }}'}
+  name: Inserts/replaces the pam_timestamp_check rule in rules.d
+  tags: [audit_rules_privileged_commands_pam_timestamp_check, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-80411-2, DISA-STIG-RHEL-07-030810]
+- lineinfile: {create: true, line: '-a always,exit -F path=/usr/sbin/pam_timestamp_check
+      -F perm=x -F auid>=1000 -F auid!=4294967295 -F key=privileged', path: /etc/audit/audit.rules}
+  name: Inserts/replaces the pam_timestamp_check rule in audit.rules
+  tags: [audit_rules_privileged_commands_pam_timestamp_check, medium_severity, restrict_strategy,
+    low_complexity, low_disruption, CCE-80411-2, DISA-STIG-RHEL-07-030810]
+- name: Ensure telnet-server is removed
+  package: name="{{item}}" state=absent
+  tags: [package_telnet-server_removed, high_severity, disable_strategy, low_complexity,
+    low_disruption, CCE-27165-0, DISA-STIG-RHEL-07-021710]
+  with_items: [telnet-server]
+- name: Ensure rsh-server is removed
+  package: name="{{item}}" state=absent
+  tags: [package_rsh-server_removed, high_severity, disable_strategy, low_complexity,
+    low_disruption, CCE-27342-5, DISA-STIG-RHEL-07-020000]
+  with_items: [rsh-server]
+- name: Ensure ypserv is removed
+  package: name="{{item}}" state=absent
+  tags: [package_ypserv_removed, high_severity, disable_strategy, low_complexity,
+    low_disruption, CCE-27399-5, DISA-STIG-RHEL-07-020010]
+  with_items: [ypserv]
+- name: Ensure tftp-server is removed
+  package: name="{{item}}" state=absent
+  tags: [package_tftp-server_removed, high_severity, disable_strategy, low_complexity,
+    low_disruption, CCE-80213-2, DISA-STIG-RHEL-07-040700]
+  with_items: [tftp-server]
+- failed_when: service_result|failed and ('Could not find the requested service' not
+    in service_result.msg)
+  name: Disable service kdump
+  register: service_result
+  service: name="{{item}}" enabled="no" state="stopped"
+  tags: [service_kdump_disabled, medium_severity, disable_strategy, low_complexity,
+    low_disruption, CCE-80258-7, DISA-STIG-RHEL-07-021300]
+  with_items: [kdump]
+- find: {paths: '{{ ''/etc/cron.allow'' | dirname }}', patterns: '{{ ''/etc/cron.allow''
+      | basename }}'}
+  name: Find /etc/cron.allow file(s)
+  register: files_found
+  tags: [file_owner_cron_allow, medium_severity, configure_strategy, low_complexity,
+    low_disruption, CCE-80378-3, DISA-STIG-RHEL-07-021110]
+- file: {owner: root, path: '{{ item.path }}'}
+  name: Set user ownership to root
+  tags: [file_owner_cron_allow, medium_severity, configure_strategy, low_complexity,
+    low_disruption, CCE-80378-3, DISA-STIG-RHEL-07-021110]
+  with_items: ['{{ files_found.files }}']
+- find: {paths: '{{ ''/etc/cron.allow'' | dirname }}', patterns: '{{ ''/etc/cron.allow''
+      | basename }}'}
+  name: Find /etc/cron.allow file(s)
+  register: files_found
+  tags: [file_groupowner_cron_allow, medium_severity, configure_strategy, low_complexity,
+    low_disruption, CCE-80379-1, DISA-STIG-RHEL-07-021120]
+- file: {group: root, path: '{{ item.path }}'}
+  name: Set group ownership to root
+  tags: [file_groupowner_cron_allow, medium_severity, configure_strategy, low_complexity,
+    low_disruption, CCE-80379-1, DISA-STIG-RHEL-07-021120]
+  with_items: ['{{ files_found.files }}']
+- name: Ensure openssh-server is installed
+  package: name="{{item}}" state=present
+  tags: [package_openssh-server_installed, medium_severity, enable_strategy, low_complexity,
+    low_disruption, CCE-80215-7, DISA-STIG-RHEL-07-040300]
+  with_items: [openssh-server]
+- name: Enable service sshd
+  service: name="{{item}}" enabled="yes" state="started"
+  tags: [service_sshd_enabled, medium_severity, enable_strategy, low_complexity, low_disruption,
+    CCE-80216-5, DISA-STIG-RHEL-07-040310]
+  with_items: [sshd]
+- find: {paths: '{{ ''/etc/ssh/*.pub'' | dirname }}', patterns: '{{ ''/etc/ssh/*.pub''
+      | basename }}'}
+  name: Find /etc/ssh/*.pub file(s)
+  register: files_found
+  tags: [file_permissions_sshd_pub_key, medium_severity, configure_strategy, low_complexity,
+    low_disruption, CCE-27311-0, NIST-800-53-AC-6, NIST-800-171-3.1.13, NIST-800-171-3.13.10,
+    DISA-STIG-RHEL-07-040410]
+- file: {mode: 420, path: '{{ item.path }}'}
+  name: Set permissions
+  tags: [file_permissions_sshd_pub_key, medium_severity, configure_strategy, low_complexity,
+    low_disruption, CCE-27311-0, NIST-800-53-AC-6, NIST-800-171-3.1.13, NIST-800-171-3.13.10,
+    DISA-STIG-RHEL-07-040410]
+  with_items: ['{{ files_found.files }}']
+- find: {paths: '{{ ''/etc/ssh/*_key'' | dirname }}', patterns: '{{ ''/etc/ssh/*_key''
+      | basename }}'}
+  name: Find /etc/ssh/*_key file(s)
+  register: files_found
+  tags: [file_permissions_sshd_private_key, medium_severity, configure_strategy, low_complexity,
+    low_disruption, CCE-27485-2, NIST-800-53-AC-6, NIST-800-171-3.1.13, NIST-800-171-3.13.10,
+    DISA-STIG-RHEL-07-040420]
+- file: {mode: 384, path: '{{ item.path }}'}
+  name: Set permissions
+  tags: [file_permissions_sshd_private_key, medium_severity, configure_strategy, low_complexity,
+    low_disruption, CCE-27485-2, NIST-800-53-AC-6, NIST-800-171-3.1.13, NIST-800-171-3.13.10,
+    DISA-STIG-RHEL-07-040420]
+  with_items: ['{{ files_found.files }}']
+- lineinfile: {dest: /etc/ssh/sshd_config, line: Protocol 2, regexp: '^Protocol [0-9]',
+    validate: sshd -t -f %s}
+  name: Allow Only SSH Protocol 2
+  tags: [sshd_allow_only_protocol2, high_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-27320-1, NIST-800-53-AC-17(8).1(ii), NIST-800-53-IA-5(1)(c),
+    NIST-800-171-3.1.13, NIST-800-171-3.5.4, CJIS-5.5.6, DISA-STIG-RHEL-07-040390]
+- lineinfile: {create: true, dest: /etc/ssh/sshd_config, line: GSSAPIAuthentication
+      no, regexp: '(?i)^#?gssapiauthentication', validate: sshd -t -f %s}
+  name: Disable GSSAPI Authentication
+  tags: [sshd_disable_gssapi_auth, medium_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-80220-7, NIST-800-53-CM-6(c), NIST-800-171-3.1.12, DISA-STIG-RHEL-07-040430]
+- lineinfile: {create: true, dest: /etc/ssh/sshd_config, line: KerberosAuthentication
+      no, regexp: '(?i)^#?kerberosauthentication', validate: sshd -t -f %s}
+  name: Disable Kerberos Authentication
+  tags: [sshd_disable_kerb_auth, medium_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-80221-5, NIST-800-53-CM-6(c), NIST-800-171-3.1.12, DISA-STIG-RHEL-07-040440]
+- lineinfile: {create: true, dest: /etc/ssh/sshd_config, line: StrictModes yes, regexp: '(?i)^#?strictmodes',
+    validate: sshd -t -f %s}
+  name: Enable Use of Strict Mode Checking
+  tags: [sshd_enable_strictmodes, medium_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-80222-3, NIST-800-53-AC-6, NIST-800-171-3.1.12, DISA-STIG-RHEL-07-040450]
+- lineinfile: {create: true, dest: /etc/ssh/sshd_config, line: UsePrivilegeSeparation
+      sandbox, regexp: '(?i)^#?useprivilegeseparation', validate: sshd -t -f %s}
+  name: Enable use of Privilege Separation
+  tags: [sshd_use_priv_separation, medium_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-80223-1, NIST-800-53-AC-6, NIST-800-171-3.1.12, DISA-STIG-RHEL-07-040460]
+- lineinfile: {create: true, dest: /etc/ssh/sshd_config, line: Compression delayed,
+    regexp: '(?i)^#?compression', validate: sshd -t -f %s}
+  name: Disable Compression or Set Compression to delayed
+  tags: [sshd_disable_compression, medium_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-80224-9, NIST-800-53-CM-6(b), NIST-800-171-3.1.12, DISA-STIG-RHEL-07-040470]
+- lineinfile: {create: true, dest: /etc/ssh/sshd_config, line: PrintLastLog yes, regexp: ^PrintLastLog,
+    validate: sshd -t -f %s}
+  name: Print last log
+  tags: [sshd_print_last_log, low_severity, CCE-80225-6, NIST-800-53-AC-9, DISA-STIG-RHEL-07-040360]
+- lineinfile: {create: true, dest: /etc/ssh/sshd_config, line: 'ClientAliveInterval
+      {{ sshd_idle_timeout_value }}', regexp: ^ClientAliveInterval, validate: sshd
+      -t -f %s}
+  name: Set SSH Idle Timeout Interval
+  tags: [sshd_set_idle_timeout, low_severity, restrict_strategy, low_complexity, low_disruption,
+    CCE-27433-2, NIST-800-53-AC-2(5), NIST-800-53-SA-8(i), NIST-800-53-AC-12, NIST-800-171-3.1.11,
+    PCI-DSS-Req-8.1.8, CJIS-5.5.6, DISA-STIG-RHEL-07-040320]
+- lineinfile: {create: true, dest: /etc/ssh/sshd_config, line: ClientAliveCountMax
+      0, regexp: ^ClientAliveCountMax, validate: sshd -t -f %s}
+  name: Set SSH Client Alive Count
+  tags: [sshd_set_keepalive, medium_severity, restrict_strategy, low_complexity, low_disruption,
+    CCE-27082-7, NIST-800-53-AC-2(5), NIST-800-53-SA-8, NIST-800-53-AC-12, NIST-800-171-3.1.11,
+    CJIS-5.5.6, DISA-STIG-RHEL-07-040340]
+- lineinfile: {create: true, dest: /etc/ssh/sshd_config, line: IgnoreRhosts yes, regexp: ^IgnoreRhosts,
+    validate: sshd -t -f %s}
+  name: Disable SSH Support for .rhosts Files
+  tags: [sshd_disable_rhosts, medium_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-27377-1, NIST-800-53-AC-3, NIST-800-53-CM-6(a), NIST-800-171-3.1.12,
+    CJIS-5.5.6, DISA-STIG-RHEL-07-040350]
+- lineinfile: {create: true, dest: /etc/ssh/sshd_config, line: IgnoreUserKnownHosts
+      yes, regexp: ^IgnoreUserKnownHosts, validate: sshd -t -f %s}
+  name: Disable SSH Support for User Known Hosts
+  tags: [sshd_disable_user_known_hosts, medium_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-80372-6, NIST-800-53-CM-6(a), NIST-800-171-3.1.12, DISA-STIG-RHEL-07-040380]
+- lineinfile: {create: true, dest: /etc/ssh/sshd_config, line: RhostsRSAAuthentication
+      no, regexp: ^RhostsRSAAuthentication, validate: sshd -t -f %s}
+  name: Disable SSH Support for Rhosts RSA Authentication
+  tags: [sshd_disable_rhosts_rsa, medium_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-80373-4, NIST-800-53-CM-6(a), NIST-800-171-3.1.12, DISA-STIG-RHEL-07-040330]
+- lineinfile: {create: true, dest: /etc/ssh/sshd_config, line: HostbasedAuthentication
+      no, regexp: ^HostbasedAuthentication}
+  name: Disable Host-Based Authentication
+  tags: [disable_host_auth, medium_severity, restrict_strategy, low_complexity, low_disruption,
+    CCE-27413-4, NIST-800-53-AC-3, NIST-800-53-CM-6(b), NIST-800-171-3.1.12, CJIS-5.5.6,
+    DISA-STIG-RHEL-07-010470]
+- lineinfile: {create: true, dest: /etc/ssh/sshd_config, line: X11Forwarding yes,
+    regexp: ^X11Forwarding, validate: sshd -t -f %s}
+  name: Enable Encrypted X11 Forwarding
+  tags: [sshd_enable_x11_forwarding, high_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-80226-4, NIST-800-53-CM-2(1)(b), NIST-800-171-3.1.13, DISA-STIG-RHEL-07-040710]
+- lineinfile: {create: true, dest: /etc/ssh/sshd_config, insertafter: '(?i)^#?authentication',
+    line: PermitRootLogin no, regexp: ^PermitRootLogin, validate: sshd -t -f %s}
+  name: Disable SSH Root Login
+  tags: [sshd_disable_root_login, medium_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-27445-6, NIST-800-53-AC-3, NIST-800-53-AC-6(2), NIST-800-53-IA-2(1),
+    NIST-800-53-IA-2(5), NIST-800-171-3.1.1, NIST-800-171-3.1.5, CJIS-5.5.6, DISA-STIG-RHEL-07-040370]
+- lineinfile: {create: true, dest: /etc/ssh/sshd_config, line: PermitEmptyPasswords
+      no, regexp: ^PermitEmptyPasswords, validate: sshd -t -f %s}
+  name: Disable SSH Access via Empty Passwords
+  tags: [sshd_disable_empty_passwords, high_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-27471-2, NIST-800-53-AC-3, NIST-800-53-AC-6, NIST-800-53-CM-6(b),
+    NIST-800-171-3.1.1, NIST-800-171-3.1.5, CJIS-5.5.6, DISA-STIG-RHEL-07-010300]
+- lineinfile: {create: true, dest: /etc/ssh/sshd_config, line: Banner /etc/issue,
+    regexp: ^Banner, validate: sshd -t -f %s}
+  name: Enable SSH Warning Banner
+  tags: [sshd_enable_warning_banner, medium_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-27314-4, NIST-800-53-AC-8(a), NIST-800-53-AC-8(b), NIST-800-53-AC-8(c)(1),
+    NIST-800-53-AC-8(c)(2), NIST-800-53-AC-8(c)(3), NIST-800-171-3.1.9, CJIS-5.5.6,
+    DISA-STIG-RHEL-07-040170]
+- lineinfile: {create: true, dest: /etc/ssh/sshd_config, line: PermitUserEnvironment
+      no, regexp: ^PermitUserEnvironment, validate: sshd -t -f %s}
+  name: Do Not Allow SSH Environment Options
+  tags: [sshd_do_not_permit_user_env, medium_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-27363-1, NIST-800-53-CM-6(b), NIST-800-171-3.1.12, CJIS-5.5.6,
+    DISA-STIG-RHEL-07-010460]
+- lineinfile: {create: true, dest: /etc/ssh/sshd_config, line: 'Ciphers aes128-ctr,aes192-ctr,aes256-ctr,aes128-cbc,3des-cbc,aes192-cbc,aes256-cbc',
+    regexp: ^Ciphers, validate: sshd -t -f %s}
+  name: Use Only Approved Ciphers
+  tags: [sshd_use_approved_ciphers, medium_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-27295-5, NIST-800-53-AC-3, NIST-800-53-AC-17(2), NIST-800-53-AU-10(5),
+    NIST-800-53-CM-6(b), NIST-800-53-IA-5(1)(c), NIST-800-53-IA-7, NIST-800-171-3.1.13,
+    NIST-800-171-3.13.11, NIST-800-171-3.13.8, CJIS-5.5.6, DISA-STIG-RHEL-07-040110]
+- lineinfile: {create: true, dest: /etc/ssh/sshd_config, line: 'MACs hmac-sha2-512,hmac-sha2-256,hmac-sha1',
+    regexp: ^MACs, validate: sshd -t -f %s}
+  name: Use Only Approved MACs
+  tags: [sshd_use_approved_macs, medium_severity, restrict_strategy, low_complexity,
+    low_disruption, CCE-27455-5, NIST-800-53-AC-17(2), NIST-800-53-IA-7, NIST-800-53-SC-13,
+    NIST-800-171-3.1.13, NIST-800-171-3.13.11, NIST-800-171-3.13.8, DISA-STIG-RHEL-07-040400]
+- name: Ensure vsftpd is removed
+  package: name="{{item}}" state=absent
+  tags: [package_vsftpd_removed, high_severity, disable_strategy, low_complexity,
+    low_disruption, CCE-80245-4, DISA-STIG-RHEL-07-040690]
+  with_items: [vsftpd]
