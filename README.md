@@ -30,6 +30,9 @@ How to apply this remediation role:
 $ ansible-playbook -i "192.168.1.155," playbook.yml  
 $ ansible-playbook -i inventory.ini playbook.yml
 
+This Ansible role has been generated from the
+
+
 Requirements
 ------------
 
@@ -74,4 +77,4 @@ BSD-3-Clause
 Author Information
 ------------------
 
-This Ansible remediation role has been generated from the body of security policies developed by the SCAP Security Guide project. Please see https://github.com/OpenSCAP/scap-security-guide/blob/master/Contributors.md for an updated list of authors and contributors.
+This Ansible remediation role has been generated from the body of security policies developed by the [SCAP Security Guide](https://github.com/OpenSCAP/scap-security-guide) project. Please see https://github.com/OpenSCAP/scap-security-guide/blob/master/Contributors.md for an updated list of authors and contributors.
