@@ -2562,7 +2562,7 @@
     when: find_faillock.matched > 0
 -   lineinfile:
         create: true
-        line: -w /var/run/faillock -p wa -k logins
+        line: -w /var/run/faillock/ -p wa -k logins
         path: '{{ all_files[0] }}'
     name: Inserts/replaces the faillock rule in rules.d when on x86
     tags:
@@ -2587,7 +2587,7 @@
     - CCE-80383-3
     - DISA-STIG-RHEL-07-030610
     with_items:
-    - -w /var/run/faillock -p wa -k logins
+    - -w /var/run/faillock/ -p wa -k logins
 -   name: Set architecture for audit lastlog tasks
     set_fact:
         audit_arch: b{{ ansible_architecture | regex_replace('.*(\d\d$)','\1') }}
@@ -2637,17 +2637,20 @@
     - DISA-STIG-RHEL-07-030620
     with_items:
     - -w /var/log/lastlog -p wa -k logins
+-   name: Set architecture for audit creat tasks
+    set_fact:
+        audit_arch: b{{ ansible_architecture | regex_replace('.*(\d\d$)','\1') }}
 -   find:
-        contains: ^.*path=%PATH%.*$
+        contains: -F key=perm_mod$
         paths: /etc/audit/rules.d
         patterns: '*.rules'
         recurse: false
-    name: Search /etc/audit/rules.d for audit rule entries
+    name: Search /etc/audit/rules.d for other DAC audit rules
     register: find_creat
--   name: Use /etc/audit/rules.d/privileged.rules as the recipient for the rule
+-   name: If existing DAC ruleset not found, use /etc/audit/rules.d/access.rules as the recipient for the rule
     set_fact:
         all_files:
-        - /etc/audit/rules.d/privileged.rules
+        - /etc/audit/rules.d/access.rules
     when: find_creat.matched == 0
 -   name: Use matched file as the recipient for the rule
     set_fact:
@@ -2656,9 +2659,9 @@
     when: find_creat.matched > 0
 -   lineinfile:
         create: true
-        line: -a always,exit -F path=%PATH% -F perm=x -F auid>=1000 -F auid!=4294967295 -F key=privileged
+        line: '{{ item }}'
         path: '{{ all_files[0] }}'
-    name: Inserts/replaces the creat rule in rules.d
+    name: Inserts/replaces the creat rule in rules.d when on x86
     tags:
     - audit_rules_unsuccessful_file_modification_creat
     - medium_severity
@@ -2667,11 +2670,14 @@
     - low_disruption
     - CCE-80385-8
     - DISA-STIG-RHEL-07-030500
+    with_items:
+    - -a always,exit -F arch=b32 -S creat -F exit=-EACCES -F auid>=1000 -F auid!=4294967295 -F key=access
+    - -a always,exit -F arch=b32 -S creat -F exit=-EPERM -F auid>=1000 -F auid!=4294967295 -F key=access
 -   lineinfile:
         create: true
-        line: -a always,exit -F path=%PATH% -F perm=x -F auid>=1000 -F auid!=4294967295 -F key=privileged
-        path: /etc/audit/audit.rules
-    name: Inserts/replaces the creat rule in audit.rules
+        line: '{{ item }}'
+        path: '{{ all_files[0] }}'
+    name: Inserts/replaces the creat rule in rules.d when on x86_64
     tags:
     - audit_rules_unsuccessful_file_modification_creat
     - medium_severity
@@ -2680,17 +2686,58 @@
     - low_disruption
     - CCE-80385-8
     - DISA-STIG-RHEL-07-030500
+    when: audit_arch == 'b64'
+    with_items:
+    - -a always,exit -F arch=b64 -S creat -F exit=-EACCES -F auid>=1000 -F auid!=4294967295 -F key=access
+    - -a always,exit -F arch=b64 -S creat -F exit=-EPERM -F auid>=1000 -F auid!=4294967295 -F key=access
+-   lineinfile:
+        dest: /etc/audit/audit.rules
+        line: '{{ item }}'
+        state: present
+    name: Inserts/replaces the creat rule in /etc/audit/audit.rules when on x86
+    tags:
+    - audit_rules_unsuccessful_file_modification_creat
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80385-8
+    - DISA-STIG-RHEL-07-030500
+    with_items:
+    - -a always,exit -F arch=b32 -S creat -F exit=-EACCES -F auid>=1000 -F auid!=4294967295 -F key=access
+    - -a always,exit -F arch=b32 -S creat -F exit=-EPERM -F auid>=1000 -F auid!=4294967295 -F key=access
+-   lineinfile:
+        create: true
+        dest: /etc/audit/audit.rules
+        line: '{{ item }}'
+        state: present
+    name: Inserts/replaces the creat rule in audit.rules when on x86_64
+    tags:
+    - audit_rules_unsuccessful_file_modification_creat
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80385-8
+    - DISA-STIG-RHEL-07-030500
+    when: audit_arch == 'b64'
+    with_items:
+    - -a always,exit -F arch=b64 -S creat -F exit=-EACCES -F auid>=1000 -F auid!=4294967295 -F key=access
+    - -a always,exit -F arch=b64 -S creat -F exit=-EPERM -F auid>=1000 -F auid!=4294967295 -F key=access
+-   name: Set architecture for audit open tasks
+    set_fact:
+        audit_arch: b{{ ansible_architecture | regex_replace('.*(\d\d$)','\1') }}
 -   find:
-        contains: ^.*path=%PATH%.*$
+        contains: -F key=perm_mod$
         paths: /etc/audit/rules.d
         patterns: '*.rules'
         recurse: false
-    name: Search /etc/audit/rules.d for audit rule entries
+    name: Search /etc/audit/rules.d for other DAC audit rules
     register: find_open
--   name: Use /etc/audit/rules.d/privileged.rules as the recipient for the rule
+-   name: If existing DAC ruleset not found, use /etc/audit/rules.d/access.rules as the recipient for the rule
     set_fact:
         all_files:
-        - /etc/audit/rules.d/privileged.rules
+        - /etc/audit/rules.d/access.rules
     when: find_open.matched == 0
 -   name: Use matched file as the recipient for the rule
     set_fact:
@@ -2699,9 +2746,9 @@
     when: find_open.matched > 0
 -   lineinfile:
         create: true
-        line: -a always,exit -F path=%PATH% -F perm=x -F auid>=1000 -F auid!=4294967295 -F key=privileged
+        line: '{{ item }}'
         path: '{{ all_files[0] }}'
-    name: Inserts/replaces the open rule in rules.d
+    name: Inserts/replaces the open rule in rules.d when on x86
     tags:
     - audit_rules_unsuccessful_file_modification_open
     - medium_severity
@@ -2710,11 +2757,14 @@
     - low_disruption
     - CCE-80386-6
     - DISA-STIG-RHEL-07-030510
+    with_items:
+    - -a always,exit -F arch=b32 -S open -F exit=-EACCES -F auid>=1000 -F auid!=4294967295 -F key=access
+    - -a always,exit -F arch=b32 -S open -F exit=-EPERM -F auid>=1000 -F auid!=4294967295 -F key=access
 -   lineinfile:
         create: true
-        line: -a always,exit -F path=%PATH% -F perm=x -F auid>=1000 -F auid!=4294967295 -F key=privileged
-        path: /etc/audit/audit.rules
-    name: Inserts/replaces the open rule in audit.rules
+        line: '{{ item }}'
+        path: '{{ all_files[0] }}'
+    name: Inserts/replaces the open rule in rules.d when on x86_64
     tags:
     - audit_rules_unsuccessful_file_modification_open
     - medium_severity
@@ -2723,17 +2773,58 @@
     - low_disruption
     - CCE-80386-6
     - DISA-STIG-RHEL-07-030510
+    when: audit_arch == 'b64'
+    with_items:
+    - -a always,exit -F arch=b64 -S open -F exit=-EACCES -F auid>=1000 -F auid!=4294967295 -F key=access
+    - -a always,exit -F arch=b64 -S open -F exit=-EPERM -F auid>=1000 -F auid!=4294967295 -F key=access
+-   lineinfile:
+        dest: /etc/audit/audit.rules
+        line: '{{ item }}'
+        state: present
+    name: Inserts/replaces the open rule in /etc/audit/audit.rules when on x86
+    tags:
+    - audit_rules_unsuccessful_file_modification_open
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80386-6
+    - DISA-STIG-RHEL-07-030510
+    with_items:
+    - -a always,exit -F arch=b32 -S open -F exit=-EACCES -F auid>=1000 -F auid!=4294967295 -F key=access
+    - -a always,exit -F arch=b32 -S open -F exit=-EPERM -F auid>=1000 -F auid!=4294967295 -F key=access
+-   lineinfile:
+        create: true
+        dest: /etc/audit/audit.rules
+        line: '{{ item }}'
+        state: present
+    name: Inserts/replaces the open rule in audit.rules when on x86_64
+    tags:
+    - audit_rules_unsuccessful_file_modification_open
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80386-6
+    - DISA-STIG-RHEL-07-030510
+    when: audit_arch == 'b64'
+    with_items:
+    - -a always,exit -F arch=b64 -S open -F exit=-EACCES -F auid>=1000 -F auid!=4294967295 -F key=access
+    - -a always,exit -F arch=b64 -S open -F exit=-EPERM -F auid>=1000 -F auid!=4294967295 -F key=access
+-   name: Set architecture for audit openat tasks
+    set_fact:
+        audit_arch: b{{ ansible_architecture | regex_replace('.*(\d\d$)','\1') }}
 -   find:
-        contains: ^.*path=%PATH%.*$
+        contains: -F key=perm_mod$
         paths: /etc/audit/rules.d
         patterns: '*.rules'
         recurse: false
-    name: Search /etc/audit/rules.d for audit rule entries
+    name: Search /etc/audit/rules.d for other DAC audit rules
     register: find_openat
--   name: Use /etc/audit/rules.d/privileged.rules as the recipient for the rule
+-   name: If existing DAC ruleset not found, use /etc/audit/rules.d/access.rules as the recipient for the rule
     set_fact:
         all_files:
-        - /etc/audit/rules.d/privileged.rules
+        - /etc/audit/rules.d/access.rules
     when: find_openat.matched == 0
 -   name: Use matched file as the recipient for the rule
     set_fact:
@@ -2742,9 +2833,9 @@
     when: find_openat.matched > 0
 -   lineinfile:
         create: true
-        line: -a always,exit -F path=%PATH% -F perm=x -F auid>=1000 -F auid!=4294967295 -F key=privileged
+        line: '{{ item }}'
         path: '{{ all_files[0] }}'
-    name: Inserts/replaces the openat rule in rules.d
+    name: Inserts/replaces the openat rule in rules.d when on x86
     tags:
     - audit_rules_unsuccessful_file_modification_openat
     - medium_severity
@@ -2753,11 +2844,14 @@
     - low_disruption
     - CCE-80387-4
     - DISA-STIG-RHEL-07-030520
+    with_items:
+    - -a always,exit -F arch=b32 -S openat -F exit=-EACCES -F auid>=1000 -F auid!=4294967295 -F key=access
+    - -a always,exit -F arch=b32 -S openat -F exit=-EPERM -F auid>=1000 -F auid!=4294967295 -F key=access
 -   lineinfile:
         create: true
-        line: -a always,exit -F path=%PATH% -F perm=x -F auid>=1000 -F auid!=4294967295 -F key=privileged
-        path: /etc/audit/audit.rules
-    name: Inserts/replaces the openat rule in audit.rules
+        line: '{{ item }}'
+        path: '{{ all_files[0] }}'
+    name: Inserts/replaces the openat rule in rules.d when on x86_64
     tags:
     - audit_rules_unsuccessful_file_modification_openat
     - medium_severity
@@ -2766,17 +2860,58 @@
     - low_disruption
     - CCE-80387-4
     - DISA-STIG-RHEL-07-030520
+    when: audit_arch == 'b64'
+    with_items:
+    - -a always,exit -F arch=b64 -S openat -F exit=-EACCES -F auid>=1000 -F auid!=4294967295 -F key=access
+    - -a always,exit -F arch=b64 -S openat -F exit=-EPERM -F auid>=1000 -F auid!=4294967295 -F key=access
+-   lineinfile:
+        dest: /etc/audit/audit.rules
+        line: '{{ item }}'
+        state: present
+    name: Inserts/replaces the openat rule in /etc/audit/audit.rules when on x86
+    tags:
+    - audit_rules_unsuccessful_file_modification_openat
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80387-4
+    - DISA-STIG-RHEL-07-030520
+    with_items:
+    - -a always,exit -F arch=b32 -S openat -F exit=-EACCES -F auid>=1000 -F auid!=4294967295 -F key=access
+    - -a always,exit -F arch=b32 -S openat -F exit=-EPERM -F auid>=1000 -F auid!=4294967295 -F key=access
+-   lineinfile:
+        create: true
+        dest: /etc/audit/audit.rules
+        line: '{{ item }}'
+        state: present
+    name: Inserts/replaces the openat rule in audit.rules when on x86_64
+    tags:
+    - audit_rules_unsuccessful_file_modification_openat
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80387-4
+    - DISA-STIG-RHEL-07-030520
+    when: audit_arch == 'b64'
+    with_items:
+    - -a always,exit -F arch=b64 -S openat -F exit=-EACCES -F auid>=1000 -F auid!=4294967295 -F key=access
+    - -a always,exit -F arch=b64 -S openat -F exit=-EPERM -F auid>=1000 -F auid!=4294967295 -F key=access
+-   name: Set architecture for audit open_by_handle_at tasks
+    set_fact:
+        audit_arch: b{{ ansible_architecture | regex_replace('.*(\d\d$)','\1') }}
 -   find:
-        contains: ^.*path=%PATH%.*$
+        contains: -F key=perm_mod$
         paths: /etc/audit/rules.d
         patterns: '*.rules'
         recurse: false
-    name: Search /etc/audit/rules.d for audit rule entries
+    name: Search /etc/audit/rules.d for other DAC audit rules
     register: find_open_by_handle_at
--   name: Use /etc/audit/rules.d/privileged.rules as the recipient for the rule
+-   name: If existing DAC ruleset not found, use /etc/audit/rules.d/access.rules as the recipient for the rule
     set_fact:
         all_files:
-        - /etc/audit/rules.d/privileged.rules
+        - /etc/audit/rules.d/access.rules
     when: find_open_by_handle_at.matched == 0
 -   name: Use matched file as the recipient for the rule
     set_fact:
@@ -2785,9 +2920,9 @@
     when: find_open_by_handle_at.matched > 0
 -   lineinfile:
         create: true
-        line: -a always,exit -F path=%PATH% -F perm=x -F auid>=1000 -F auid!=4294967295 -F key=privileged
+        line: '{{ item }}'
         path: '{{ all_files[0] }}'
-    name: Inserts/replaces the open_by_handle_at rule in rules.d
+    name: Inserts/replaces the open_by_handle_at rule in rules.d when on x86
     tags:
     - audit_rules_unsuccessful_file_modification_open_by_handle_at
     - medium_severity
@@ -2796,11 +2931,14 @@
     - low_disruption
     - CCE-80388-2
     - DISA-STIG-RHEL-07-030530
+    with_items:
+    - -a always,exit -F arch=b32 -S open_by_handle_at -F exit=-EACCES -F auid>=1000 -F auid!=4294967295 -F key=access
+    - -a always,exit -F arch=b32 -S open_by_handle_at -F exit=-EPERM -F auid>=1000 -F auid!=4294967295 -F key=access
 -   lineinfile:
         create: true
-        line: -a always,exit -F path=%PATH% -F perm=x -F auid>=1000 -F auid!=4294967295 -F key=privileged
-        path: /etc/audit/audit.rules
-    name: Inserts/replaces the open_by_handle_at rule in audit.rules
+        line: '{{ item }}'
+        path: '{{ all_files[0] }}'
+    name: Inserts/replaces the open_by_handle_at rule in rules.d when on x86_64
     tags:
     - audit_rules_unsuccessful_file_modification_open_by_handle_at
     - medium_severity
@@ -2809,17 +2947,58 @@
     - low_disruption
     - CCE-80388-2
     - DISA-STIG-RHEL-07-030530
+    when: audit_arch == 'b64'
+    with_items:
+    - -a always,exit -F arch=b64 -S open_by_handle_at -F exit=-EACCES -F auid>=1000 -F auid!=4294967295 -F key=access
+    - -a always,exit -F arch=b64 -S open_by_handle_at -F exit=-EPERM -F auid>=1000 -F auid!=4294967295 -F key=access
+-   lineinfile:
+        dest: /etc/audit/audit.rules
+        line: '{{ item }}'
+        state: present
+    name: Inserts/replaces the open_by_handle_at rule in /etc/audit/audit.rules when on x86
+    tags:
+    - audit_rules_unsuccessful_file_modification_open_by_handle_at
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80388-2
+    - DISA-STIG-RHEL-07-030530
+    with_items:
+    - -a always,exit -F arch=b32 -S open_by_handle_at -F exit=-EACCES -F auid>=1000 -F auid!=4294967295 -F key=access
+    - -a always,exit -F arch=b32 -S open_by_handle_at -F exit=-EPERM -F auid>=1000 -F auid!=4294967295 -F key=access
+-   lineinfile:
+        create: true
+        dest: /etc/audit/audit.rules
+        line: '{{ item }}'
+        state: present
+    name: Inserts/replaces the open_by_handle_at rule in audit.rules when on x86_64
+    tags:
+    - audit_rules_unsuccessful_file_modification_open_by_handle_at
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80388-2
+    - DISA-STIG-RHEL-07-030530
+    when: audit_arch == 'b64'
+    with_items:
+    - -a always,exit -F arch=b64 -S open_by_handle_at -F exit=-EACCES -F auid>=1000 -F auid!=4294967295 -F key=access
+    - -a always,exit -F arch=b64 -S open_by_handle_at -F exit=-EPERM -F auid>=1000 -F auid!=4294967295 -F key=access
+-   name: Set architecture for audit truncate tasks
+    set_fact:
+        audit_arch: b{{ ansible_architecture | regex_replace('.*(\d\d$)','\1') }}
 -   find:
-        contains: ^.*path=%PATH%.*$
+        contains: -F key=perm_mod$
         paths: /etc/audit/rules.d
         patterns: '*.rules'
         recurse: false
-    name: Search /etc/audit/rules.d for audit rule entries
+    name: Search /etc/audit/rules.d for other DAC audit rules
     register: find_truncate
--   name: Use /etc/audit/rules.d/privileged.rules as the recipient for the rule
+-   name: If existing DAC ruleset not found, use /etc/audit/rules.d/access.rules as the recipient for the rule
     set_fact:
         all_files:
-        - /etc/audit/rules.d/privileged.rules
+        - /etc/audit/rules.d/access.rules
     when: find_truncate.matched == 0
 -   name: Use matched file as the recipient for the rule
     set_fact:
@@ -2828,9 +3007,9 @@
     when: find_truncate.matched > 0
 -   lineinfile:
         create: true
-        line: -a always,exit -F path=%PATH% -F perm=x -F auid>=1000 -F auid!=4294967295 -F key=privileged
+        line: '{{ item }}'
         path: '{{ all_files[0] }}'
-    name: Inserts/replaces the truncate rule in rules.d
+    name: Inserts/replaces the truncate rule in rules.d when on x86
     tags:
     - audit_rules_unsuccessful_file_modification_truncate
     - medium_severity
@@ -2839,11 +3018,14 @@
     - low_disruption
     - CCE-80389-0
     - DISA-STIG-RHEL-07-030540
+    with_items:
+    - -a always,exit -F arch=b32 -S truncate -F exit=-EACCES -F auid>=1000 -F auid!=4294967295 -F key=access
+    - -a always,exit -F arch=b32 -S truncate -F exit=-EPERM -F auid>=1000 -F auid!=4294967295 -F key=access
 -   lineinfile:
         create: true
-        line: -a always,exit -F path=%PATH% -F perm=x -F auid>=1000 -F auid!=4294967295 -F key=privileged
-        path: /etc/audit/audit.rules
-    name: Inserts/replaces the truncate rule in audit.rules
+        line: '{{ item }}'
+        path: '{{ all_files[0] }}'
+    name: Inserts/replaces the truncate rule in rules.d when on x86_64
     tags:
     - audit_rules_unsuccessful_file_modification_truncate
     - medium_severity
@@ -2852,17 +3034,58 @@
     - low_disruption
     - CCE-80389-0
     - DISA-STIG-RHEL-07-030540
+    when: audit_arch == 'b64'
+    with_items:
+    - -a always,exit -F arch=b64 -S truncate -F exit=-EACCES -F auid>=1000 -F auid!=4294967295 -F key=access
+    - -a always,exit -F arch=b64 -S truncate -F exit=-EPERM -F auid>=1000 -F auid!=4294967295 -F key=access
+-   lineinfile:
+        dest: /etc/audit/audit.rules
+        line: '{{ item }}'
+        state: present
+    name: Inserts/replaces the truncate rule in /etc/audit/audit.rules when on x86
+    tags:
+    - audit_rules_unsuccessful_file_modification_truncate
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80389-0
+    - DISA-STIG-RHEL-07-030540
+    with_items:
+    - -a always,exit -F arch=b32 -S truncate -F exit=-EACCES -F auid>=1000 -F auid!=4294967295 -F key=access
+    - -a always,exit -F arch=b32 -S truncate -F exit=-EPERM -F auid>=1000 -F auid!=4294967295 -F key=access
+-   lineinfile:
+        create: true
+        dest: /etc/audit/audit.rules
+        line: '{{ item }}'
+        state: present
+    name: Inserts/replaces the truncate rule in audit.rules when on x86_64
+    tags:
+    - audit_rules_unsuccessful_file_modification_truncate
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80389-0
+    - DISA-STIG-RHEL-07-030540
+    when: audit_arch == 'b64'
+    with_items:
+    - -a always,exit -F arch=b64 -S truncate -F exit=-EACCES -F auid>=1000 -F auid!=4294967295 -F key=access
+    - -a always,exit -F arch=b64 -S truncate -F exit=-EPERM -F auid>=1000 -F auid!=4294967295 -F key=access
+-   name: Set architecture for audit ftruncate tasks
+    set_fact:
+        audit_arch: b{{ ansible_architecture | regex_replace('.*(\d\d$)','\1') }}
 -   find:
-        contains: ^.*path=%PATH%.*$
+        contains: -F key=perm_mod$
         paths: /etc/audit/rules.d
         patterns: '*.rules'
         recurse: false
-    name: Search /etc/audit/rules.d for audit rule entries
+    name: Search /etc/audit/rules.d for other DAC audit rules
     register: find_ftruncate
--   name: Use /etc/audit/rules.d/privileged.rules as the recipient for the rule
+-   name: If existing DAC ruleset not found, use /etc/audit/rules.d/access.rules as the recipient for the rule
     set_fact:
         all_files:
-        - /etc/audit/rules.d/privileged.rules
+        - /etc/audit/rules.d/access.rules
     when: find_ftruncate.matched == 0
 -   name: Use matched file as the recipient for the rule
     set_fact:
@@ -2871,9 +3094,9 @@
     when: find_ftruncate.matched > 0
 -   lineinfile:
         create: true
-        line: -a always,exit -F path=%PATH% -F perm=x -F auid>=1000 -F auid!=4294967295 -F key=privileged
+        line: '{{ item }}'
         path: '{{ all_files[0] }}'
-    name: Inserts/replaces the ftruncate rule in rules.d
+    name: Inserts/replaces the ftruncate rule in rules.d when on x86
     tags:
     - audit_rules_unsuccessful_file_modification_ftruncate
     - medium_severity
@@ -2882,11 +3105,14 @@
     - low_disruption
     - CCE-80390-8
     - DISA-STIG-RHEL-07-030550
+    with_items:
+    - -a always,exit -F arch=b32 -S ftruncate -F exit=-EACCES -F auid>=1000 -F auid!=4294967295 -F key=access
+    - -a always,exit -F arch=b32 -S ftruncate -F exit=-EPERM -F auid>=1000 -F auid!=4294967295 -F key=access
 -   lineinfile:
         create: true
-        line: -a always,exit -F path=%PATH% -F perm=x -F auid>=1000 -F auid!=4294967295 -F key=privileged
-        path: /etc/audit/audit.rules
-    name: Inserts/replaces the ftruncate rule in audit.rules
+        line: '{{ item }}'
+        path: '{{ all_files[0] }}'
+    name: Inserts/replaces the ftruncate rule in rules.d when on x86_64
     tags:
     - audit_rules_unsuccessful_file_modification_ftruncate
     - medium_severity
@@ -2895,6 +3121,44 @@
     - low_disruption
     - CCE-80390-8
     - DISA-STIG-RHEL-07-030550
+    when: audit_arch == 'b64'
+    with_items:
+    - -a always,exit -F arch=b64 -S ftruncate -F exit=-EACCES -F auid>=1000 -F auid!=4294967295 -F key=access
+    - -a always,exit -F arch=b64 -S ftruncate -F exit=-EPERM -F auid>=1000 -F auid!=4294967295 -F key=access
+-   lineinfile:
+        dest: /etc/audit/audit.rules
+        line: '{{ item }}'
+        state: present
+    name: Inserts/replaces the ftruncate rule in /etc/audit/audit.rules when on x86
+    tags:
+    - audit_rules_unsuccessful_file_modification_ftruncate
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80390-8
+    - DISA-STIG-RHEL-07-030550
+    with_items:
+    - -a always,exit -F arch=b32 -S ftruncate -F exit=-EACCES -F auid>=1000 -F auid!=4294967295 -F key=access
+    - -a always,exit -F arch=b32 -S ftruncate -F exit=-EPERM -F auid>=1000 -F auid!=4294967295 -F key=access
+-   lineinfile:
+        create: true
+        dest: /etc/audit/audit.rules
+        line: '{{ item }}'
+        state: present
+    name: Inserts/replaces the ftruncate rule in audit.rules when on x86_64
+    tags:
+    - audit_rules_unsuccessful_file_modification_ftruncate
+    - medium_severity
+    - restrict_strategy
+    - low_complexity
+    - low_disruption
+    - CCE-80390-8
+    - DISA-STIG-RHEL-07-030550
+    when: audit_arch == 'b64'
+    with_items:
+    - -a always,exit -F arch=b64 -S ftruncate -F exit=-EACCES -F auid>=1000 -F auid!=4294967295 -F key=access
+    - -a always,exit -F arch=b64 -S ftruncate -F exit=-EPERM -F auid>=1000 -F auid!=4294967295 -F key=access
 -   find:
         contains: ^.*path=/usr/sbin/semanage.*$
         paths: /etc/audit/rules.d
