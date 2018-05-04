@@ -4,19 +4,20 @@ DISA STIG for Red Hat Enterprise Linux 7
 Ansible remediation role for profile stig-rhel7-disa  
 Profile Title:  DISA STIG for Red Hat Enterprise Linux 7  
 Profile Description:  
-  
 This profile contains configuration checks that align to the   
-DISA STIG for Red Hat Enterprise Linux V1R1.  
-  
-In addition to being applicable to RHEL7, DISA recognizes this   
-configuration baseline as applicable to the operating system  
-tier of Red Hat technologies that are based off RHEL7, such as RHEL  
-Server,  RHV-H, RHEL for HPC, RHEL Workstation, and Red Hat   
-Storage deployments.  
-  
+  DISA STIG for Red Hat Enterprise Linux V1R4.   
+    
+  In addition to being applicable to RHEL7, DISA recognizes this   
+  configuration baseline as applicable to the operating system tier of   
+  Red Hat technologies that are based off RHEL7, such as:   
+  - Red Hat Enterprise Linux Server   
+  - Red Hat Enterprise Linux Workstation and Desktop   
+  - Red Hat Virtualization Hypervisor (RHV-H)   
+  - Red Hat Enterprise Linux for HPC   
+  - Red Hat Storage  
   
 Benchmark ID:  RHEL-7  
-Benchmark Version:  0.1.38  
+Benchmark Version:  0.1.39  
   
 XCCDF Version:  1.1  
   
