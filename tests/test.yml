@@ -1,5 +1,6 @@
 ---
 - hosts: localhost
-  remote_user: root
+  connection: local
+  become: true
   roles:
-    - rhel7-role-stig-rhel7-disa
+    - ansible-rhel7-disa-stig-role
