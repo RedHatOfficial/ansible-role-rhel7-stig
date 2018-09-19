@@ -11,7 +11,7 @@ rm -f /lib/systemd/system/sockets.target.wants/*initctl*; \
 rm -f /lib/systemd/system/basic.target.wants/*; \
 rm -f /lib/systemd/system/anaconda.target.wants/*;
 
-RUN yum -y install openssh-server audit authconfig initscripts git sudo; \
+RUN yum -y install openssh-server audit authconfig initscripts git sudo cronie firewalld; \
     yum -y update; \
     yum clean all
 
