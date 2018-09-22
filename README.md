@@ -1,7 +1,7 @@
 # DISA STIG for Red Hat Enterprise Linux 7
 
 [![Build Status](https://travis-ci.org/RedHatOfficial/ansible-rhel7-disa-stig-role.svg?branch=master)](https://travis-ci.org/RedHatOfficial/ansible-rhel7-disa-stig-role)
-[![Ansible Role](https://img.shields.io/ansible/role/26063.svg)](https://galaxy.ansible.com/RedHatOfficial/rhel7-disa-stig-role)
+[![Ansible Role](https://img.shields.io/ansible/role/26063.svg)](https://galaxy.ansible.com/RedHatOfficial/rhel7_disa_stig)
 [![GitHub release](https://img.shields.io/github/release/RedHatOfficial/ansible-rhel7-disa-stig-role.svg)](https://github.com/RedHatOfficial/ansible-rhel7-disa-stig-role/releases/latest)
 
 Ansible remediation role for profile stig-rhel7-disa  
@@ -47,13 +47,13 @@ N/A
 
 ## Example Playbook
 
-Run `ansible-galaxy install RedHatOfficial.rhel7-role-stig-rhel7-disa` to
+Run `ansible-galaxy install RedHatOfficial.rhel7_disa_stig` to
 download and install the role. Then you can use the following playbook snippet.
 
 
     - hosts: all
       roles:
-         - { role: RedHatOfficial.rhel7-role-stig-rhel7-disa }
+         - { role: RedHatOfficial.rhel7_disa_stig }
 
 
 Then first check the playbook using (on the localhost):

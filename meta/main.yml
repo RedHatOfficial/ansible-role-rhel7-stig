@@ -1,4 +1,5 @@
 galaxy_info:
+  role_name: rhel7_disa_stig
   author: SCAP Security Guide development team
   description: DISA STIG for Red Hat Enterprise Linux 7
   company: "Red Hat, Inc."
