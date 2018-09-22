@@ -1,7 +1,7 @@
 # DISA STIG for Red Hat Enterprise Linux 7
 
 [![Build Status](https://travis-ci.org/RedHatOfficial/ansible-rhel7-disa-stig-role.svg?branch=master)](https://travis-ci.org/RedHatOfficial/ansible-rhel7-disa-stig-role)
-[![Ansible Role](https://img.shields.io/ansible/role/26063.svg)](https://galaxy.ansible.com/RedHatOfficial/rhel7_disa_stig)
+[![Ansible Role](https://img.shields.io/ansible/role/29992.svg)](https://galaxy.ansible.com/RedHatOfficial/rhel7_disa_stig)
 [![GitHub release](https://img.shields.io/github/release/RedHatOfficial/ansible-rhel7-disa-stig-role.svg)](https://github.com/RedHatOfficial/ansible-rhel7-disa-stig-role/releases/latest)
 
 Ansible remediation role for profile stig-rhel7-disa  
