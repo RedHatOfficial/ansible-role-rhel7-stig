@@ -35,7 +35,7 @@ $ ansible-playbook -i inventory.ini playbook.yml
 
 ## Requirements
 
-- Ansible version 2.3 or higher
+- Ansible version 2.5 or higher
 
 ## Role Variables
 
