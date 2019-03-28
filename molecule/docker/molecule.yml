@@ -5,6 +5,8 @@ driver:
   name: docker
 lint:
   name: yamllint
+  options:
+    config-file: .yamllint
 platforms:
   - name: instance
     image: centos:7
@@ -25,13 +27,13 @@ provisioner:
 scenario:
   name: docker
   test_sequence:
-          #- lint
+    - lint
     - destroy
     - syntax
     - create
     - prepare
     - converge
-    - idempotence
+#    - idempotence
     - destroy
 verifier:
   name: testinfra
