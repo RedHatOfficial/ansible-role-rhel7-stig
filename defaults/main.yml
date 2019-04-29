@@ -1,5 +1,5 @@
 ---
-# defaults file for rhel7-role-stig-rhel7-disa
+# defaults file for rhel7_stig
 
 account_disable_post_pw_expiration: true
 accounts_logon_fail_delay: true
@@ -124,11 +124,13 @@ mount_option_noexec_remote_filesystems: true
 mount_option_nosuid_remote_filesystems: true
 mount_option_nosuid_removable_partitions: true
 no_empty_passwords: true
+no_reboot_needed: true
 package_aide_installed: true
 package_screen_installed: true
 package_vsftpd_removed: true
 package_ypserv_removed: true
 patch_strategy: true
+reboot_required: true
 restrict_strategy: true
 rpm_verify_hashes: true
 rpm_verify_ownership: true

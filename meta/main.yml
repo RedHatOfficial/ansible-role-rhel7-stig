@@ -1,10 +1,10 @@
 galaxy_info:
-  role_name: rhel7_disa_stig
-  author: SCAP Security Guide development team
+  role_name: rhel7_stig
+  author: ComplianceAsCode development team
   description: DISA STIG for Red Hat Enterprise Linux 7
   company: "Red Hat, Inc."
 
-  issue_tracker_url: https://github.com/complianceascode/content/issues
+  issue_tracker_url: https://github.com/ComplianceAsCode/content/issues
 
   license: BSD-3-Clause
 
@@ -20,9 +20,10 @@ galaxy_info:
   - hardening
   - openscap
   - ssg
-  - scap-security-guide
+  - scap
   - security
   - compliance
+  - complianceascode
   - disa
   - stig
   - redhatofficial

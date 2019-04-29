@@ -3,4 +3,4 @@
   connection: local
   become: true
   roles:
-    - ansible-rhel7-disa-stig-role
+    - ansible-role-rhel7-stig

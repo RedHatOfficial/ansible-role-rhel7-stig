@@ -2,4 +2,4 @@
 - name: Converge
   hosts: all
   roles:
-    - role: ansible-rhel7-disa-stig-role
+    - role: ansible-role-rhel7-stig
