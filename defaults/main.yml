@@ -86,7 +86,6 @@ audit_rules_file_deletion_events_renameat: true
 audit_rules_file_deletion_events_rmdir: true
 audit_rules_file_deletion_events_unlink: true
 audit_rules_file_deletion_events_unlinkat: true
-audit_rules_kernel_module_loading_create: true
 audit_rules_kernel_module_loading_delete: true
 audit_rules_kernel_module_loading_finit: true
 audit_rules_kernel_module_loading_init: true
@@ -193,10 +192,8 @@ sshd_disable_compression: true
 sshd_disable_empty_passwords: true
 sshd_disable_gssapi_auth: true
 sshd_disable_kerb_auth: true
-sshd_disable_rhosts: true
 sshd_disable_rhosts_rsa: true
 sshd_disable_root_login: true
-sshd_disable_user_known_hosts: true
 sshd_do_not_permit_user_env: true
 sshd_enable_strictmodes: true
 sshd_enable_warning_banner: true
