@@ -1,10 +1,7 @@
-- name: Disable service kdump
-  service:
-    name: kdump
-    enabled: 'no'
-    state: stopped
-  register: service_result
-  failed_when: service_result is failed and ('Could not find the requested service' not in service_result.msg)
+- name: Unit Service Exists
+  shell: systemctl list-unit-files | grep -q '^kdump.service'
+  register: service_file_exists
+  ignore_errors: true
   when:
   - ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
   - disable_strategy | bool
@@ -26,14 +23,67 @@
   - NIST-800-53-CM-6(b)
   - DISA-STIG-RHEL-07-021300
 
-- name: Disable socket of service kdump if applicable
-  service:
+- name: Disable service kdump
+  systemd:
+    name: kdump.service
+    enabled: 'no'
+    state: stopped
+    masked: 'yes'
+  when:
+  - service_file_exists.rc == 0
+  - ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
+  - disable_strategy | bool
+  - no_reboot_needed | bool
+  - service_kdump_disabled | bool
+  - medium_severity | bool
+  - low_disruption | bool
+  - low_complexity | bool
+  tags:
+  - service_kdump_disabled
+  - medium_severity
+  - disable_strategy
+  - low_complexity
+  - low_disruption
+  - no_reboot_needed
+  - CCE-80258-7
+  - NIST-800-53-AC-17(8)
+  - NIST-800-53-CM-7
+  - NIST-800-53-CM-6(b)
+  - DISA-STIG-RHEL-07-021300
+
+- name: Unit Socket Exists
+  shell: systemctl list-unit-files | grep -q '^kdump.socket'
+  register: socket_file_exists
+  ignore_errors: true
+  when:
+  - ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
+  - disable_strategy | bool
+  - no_reboot_needed | bool
+  - service_kdump_disabled | bool
+  - medium_severity | bool
+  - low_disruption | bool
+  - low_complexity | bool
+  tags:
+  - service_kdump_disabled
+  - medium_severity
+  - disable_strategy
+  - low_complexity
+  - low_disruption
+  - no_reboot_needed
+  - CCE-80258-7
+  - NIST-800-53-AC-17(8)
+  - NIST-800-53-CM-7
+  - NIST-800-53-CM-6(b)
+  - DISA-STIG-RHEL-07-021300
+
+- name: Disable socket kdump
+  systemd:
     name: kdump.socket
     enabled: 'no'
     state: stopped
-  register: socket_result
-  failed_when: socket_result is failed and ('Could not find the requested service' not in socket_result.msg)
+    masked: 'yes'
   when:
+  - socket_file_exists.rc == 0
   - ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
   - disable_strategy | bool
   - no_reboot_needed | bool
@@ -113,7 +163,7 @@
   - NIST-800-171-3.1.12
   - DISA-STIG-RHEL-07-040470
 
-- name: Disable Kerberos Authentication
+- name: Rule title of sshd_disable_kerb_auth
   block:
   - name: Deduplicate values from /etc/ssh/sshd_config
     lineinfile:
@@ -149,7 +199,7 @@
   - NIST-800-171-3.1.12
   - DISA-STIG-RHEL-07-040440
 
-- name: Disable SSH Root Login
+- name: Rule title of sshd_disable_root_login
   block:
   - name: Deduplicate values from /etc/ssh/sshd_config
     lineinfile:
@@ -191,7 +241,7 @@
   - CJIS-5.5.6
   - DISA-STIG-RHEL-07-040370
 
-- name: Disable Host-Based Authentication
+- name: Rule title of disable_host_auth
   block:
   - name: Deduplicate values from /etc/ssh/sshd_config
     lineinfile:
@@ -230,7 +280,7 @@
   - CJIS-5.5.6
   - DISA-STIG-RHEL-07-010470
 
-- name: Enable Encrypted X11 Forwarding
+- name: Rule title of sshd_enable_x11_forwarding
   block:
   - name: Deduplicate values from /etc/ssh/sshd_config
     lineinfile:
@@ -302,12 +352,13 @@
   - NIST-800-53-SA-8(i)
   - NIST-800-53-AC-12
   - NIST-800-53-AC-17(b)
+  - NIST-800-53-SC-10
   - NIST-800-171-3.1.11
   - PCI-DSS-Req-8.1.8
   - CJIS-5.5.6
   - DISA-STIG-RHEL-07-040320
 
-- name: Enable Use of Strict Mode Checking
+- name: Rule title of sshd_enable_strictmodes
   block:
   - name: Deduplicate values from /etc/ssh/sshd_config
     lineinfile:
@@ -344,7 +395,7 @@
   - NIST-800-171-3.1.12
   - DISA-STIG-RHEL-07-040450
 
-- name: Disable GSSAPI Authentication
+- name: Rule title of sshd_disable_gssapi_auth
   block:
   - name: Deduplicate values from /etc/ssh/sshd_config
     lineinfile:
@@ -381,7 +432,7 @@
   - NIST-800-171-3.1.12
   - DISA-STIG-RHEL-07-040430
 
-- name: Enable Use of Privilege Separation
+- name: Rule title of sshd_use_priv_separation
   block:
   - name: Deduplicate values from /etc/ssh/sshd_config
     lineinfile:
@@ -454,12 +505,13 @@
   - NIST-800-53-AC-17(2)
   - NIST-800-53-IA-7
   - NIST-800-53-SC-13
+  - NIST-800-53-MA-4(6)
   - NIST-800-171-3.1.13
   - NIST-800-171-3.13.11
   - NIST-800-171-3.13.8
   - DISA-STIG-RHEL-07-040400
 
-- name: Allow Only SSH Protocol 2
+- name: Rule title of sshd_allow_only_protocol2
   block:
   - name: Deduplicate values from /etc/ssh/sshd_config
     lineinfile:
@@ -546,7 +598,7 @@
   - CJIS-5.5.6
   - DISA-STIG-RHEL-07-040110
 
-- name: Disable SSH Access via Empty Passwords
+- name: Rule title of sshd_disable_empty_passwords
   block:
   - name: Deduplicate values from /etc/ssh/sshd_config
     lineinfile:
@@ -587,7 +639,7 @@
   - CJIS-5.5.6
   - DISA-STIG-RHEL-07-010300
 
-- name: Do Not Allow SSH Environment Options
+- name: Rule title of sshd_do_not_permit_user_env
   block:
   - name: Deduplicate values from /etc/ssh/sshd_config
     lineinfile:
@@ -599,7 +651,7 @@
     lineinfile:
       path: /etc/ssh/sshd_config
       create: true
-      line: PermitUserEnvironment no
+      line: PermitUserEnvironment yes
       state: present
       insertbefore: ^Match
       validate: /usr/sbin/sshd -t -f %s
@@ -661,48 +713,12 @@
   - NIST-800-53-SA-8
   - NIST-800-53-AC-12
   - NIST-800-53-AC-17(b)
+  - NIST-800-53-SC-10
   - NIST-800-171-3.1.11
   - CJIS-5.5.6
   - DISA-STIG-RHEL-07-040340
 
-- name: Disable SSH Support for User Known Hosts
-  block:
-  - name: Deduplicate values from /etc/ssh/sshd_config
-    lineinfile:
-      path: /etc/ssh/sshd_config
-      create: false
-      regexp: (?i)^\s*IgnoreUserKnownHosts\s+
-      state: absent
-  - name: Insert correct line to /etc/ssh/sshd_config
-    lineinfile:
-      path: /etc/ssh/sshd_config
-      create: true
-      line: IgnoreUserKnownHosts yes
-      state: present
-      insertbefore: ^Match
-      validate: /usr/sbin/sshd -t -f %s
-  when:
-  - ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
-  - sshd_disable_user_known_hosts | bool
-  - no_reboot_needed | bool
-  - restrict_strategy | bool
-  - medium_severity | bool
-  - low_disruption | bool
-  - low_complexity | bool
-  tags:
-  - sshd_disable_user_known_hosts
-  - medium_severity
-  - restrict_strategy
-  - low_complexity
-  - low_disruption
-  - no_reboot_needed
-  - CCE-80372-6
-  - NIST-800-53-AC-17(b)
-  - NIST-800-53-CM-6(a)
-  - NIST-800-171-3.1.12
-  - DISA-STIG-RHEL-07-040380
-
-- name: Enable SSH Print Last Log
+- name: Rule title of sshd_print_last_log
   block:
   - name: Deduplicate values from /etc/ssh/sshd_config
     lineinfile:
@@ -738,7 +754,7 @@
   - NIST-800-53-AC-17(b)
   - DISA-STIG-RHEL-07-040360
 
-- name: Enable SSH Warning Banner
+- name: Rule title of sshd_enable_warning_banner
   block:
   - name: Deduplicate values from /etc/ssh/sshd_config
     lineinfile:
@@ -779,45 +795,6 @@
   - NIST-800-171-3.1.9
   - CJIS-5.5.6
   - DISA-STIG-RHEL-07-040170
-
-- name: Disable SSH Support for .rhosts Files
-  block:
-  - name: Deduplicate values from /etc/ssh/sshd_config
-    lineinfile:
-      path: /etc/ssh/sshd_config
-      create: false
-      regexp: (?i)^\s*IgnoreRhosts\s+
-      state: absent
-  - name: Insert correct line to /etc/ssh/sshd_config
-    lineinfile:
-      path: /etc/ssh/sshd_config
-      create: true
-      line: IgnoreRhosts yes
-      state: present
-      insertbefore: ^Match
-      validate: /usr/sbin/sshd -t -f %s
-  when:
-  - ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
-  - sshd_disable_rhosts | bool
-  - no_reboot_needed | bool
-  - restrict_strategy | bool
-  - medium_severity | bool
-  - low_disruption | bool
-  - low_complexity | bool
-  tags:
-  - sshd_disable_rhosts
-  - medium_severity
-  - restrict_strategy
-  - low_complexity
-  - low_disruption
-  - no_reboot_needed
-  - CCE-27377-1
-  - NIST-800-53-AC-3
-  - NIST-800-53-AC-17(b)
-  - NIST-800-53-CM-6(a)
-  - NIST-800-171-3.1.12
-  - CJIS-5.5.6
-  - DISA-STIG-RHEL-07-040350
 
 - name: Disable SSH Support for Rhosts RSA Authentication
   block:
@@ -935,10 +912,17 @@
   - DISA-STIG-RHEL-07-040420
 
 - name: Enable service sshd
-  service:
-    name: sshd
-    enabled: 'yes'
-    state: started
+  block:
+  - name: Gather the package facts
+    package_facts:
+      manager: auto
+  - name: Enable service sshd
+    service:
+      name: sshd
+      enabled: 'yes'
+      state: started
+    when:
+    - '"openssh-server" in ansible_facts.packages'
   when:
   - ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
   - no_reboot_needed | bool
@@ -1126,6 +1110,7 @@
   - medium_disruption
   - no_reboot_needed
   - CCE-80515-0
+  - DISA-STIG-RHEL-07-040190
 
 - name: Add default domain group and set CA directory (if no domain there)
   ini_file:
@@ -1163,6 +1148,7 @@
   - medium_disruption
   - no_reboot_needed
   - CCE-80515-0
+  - DISA-STIG-RHEL-07-040190
 
 - name: Configure LDAPs path to CA directory
   ini_file:
@@ -1190,6 +1176,7 @@
   - medium_disruption
   - no_reboot_needed
   - CCE-80515-0
+  - DISA-STIG-RHEL-07-040190
 
 - name: Set LDAP to be used for authentication
   lineinfile:
@@ -1596,6 +1583,7 @@
     regexp: ^#?clean_requirements_on_remove
     line: clean_requirements_on_remove=1
     insertafter: \[main\]
+    create: true
   tags:
   - clean_components_post_updating
   - low_severity
@@ -1900,6 +1888,7 @@
   - no_reboot_needed
   - CCE-80108-4
   - PCI-DSS-Req-8.3
+  - DISA-STIG-RHEL-07-010061
 
 - name: Prevent user modification of GNOME3 disablement of Smartcard Authentication
   lineinfile:
@@ -1924,6 +1913,7 @@
   - no_reboot_needed
   - CCE-80108-4
   - PCI-DSS-Req-8.3
+  - DISA-STIG-RHEL-07-010061
 
 - name: Enable GNOME3 Screensaver Lock After Idle Period
   ini_file:
@@ -2711,6 +2701,7 @@
     executable: /bin/bash
   register: files_with_incorrect_hash
   changed_when: false
+  failed_when: files_with_incorrect_hash.rc > 1
   when:
   - (package_manager_reinstall_cmd is defined)
   - high_complexity | bool
@@ -2777,7 +2768,7 @@
     warn: false
     executable: /bin/bash
   register: files_with_incorrect_ownership
-  failed_when: false
+  failed_when: files_with_incorrect_ownership.rc > 1
   changed_when: false
   check_mode: false
   tags:
@@ -2878,7 +2869,7 @@
     warn: false
     executable: /bin/bash
   register: files_with_incorrect_permissions
-  failed_when: false
+  failed_when: files_with_incorrect_permissions.rc > 1
   changed_when: false
   check_mode: false
   tags:
@@ -3158,13 +3149,10 @@
   - NIST-800-171-3.1.21
   - DISA-STIG-RHEL-07-020100
 
-- name: Disable service autofs
-  service:
-    name: autofs
-    enabled: 'no'
-    state: stopped
-  register: service_result
-  failed_when: service_result is failed and ('Could not find the requested service' not in service_result.msg)
+- name: Unit Service Exists
+  shell: systemctl list-unit-files | grep -q '^autofs.service'
+  register: service_file_exists
+  ignore_errors: true
   when:
   - ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
   - disable_strategy | bool
@@ -3188,14 +3176,71 @@
   - NIST-800-171-3.4.6
   - DISA-STIG-RHEL-07-020110
 
-- name: Disable socket of service autofs if applicable
-  service:
+- name: Disable service autofs
+  systemd:
+    name: autofs.service
+    enabled: 'no'
+    state: stopped
+    masked: 'yes'
+  when:
+  - service_file_exists.rc == 0
+  - ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
+  - disable_strategy | bool
+  - no_reboot_needed | bool
+  - service_autofs_disabled | bool
+  - medium_severity | bool
+  - low_disruption | bool
+  - low_complexity | bool
+  tags:
+  - service_autofs_disabled
+  - medium_severity
+  - disable_strategy
+  - low_complexity
+  - low_disruption
+  - no_reboot_needed
+  - CCE-27498-5
+  - NIST-800-53-AC-19(a)
+  - NIST-800-53-AC-19(d)
+  - NIST-800-53-AC-19(e)
+  - NIST-800-53-IA-3
+  - NIST-800-171-3.4.6
+  - DISA-STIG-RHEL-07-020110
+
+- name: Unit Socket Exists
+  shell: systemctl list-unit-files | grep -q '^autofs.socket'
+  register: socket_file_exists
+  ignore_errors: true
+  when:
+  - ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
+  - disable_strategy | bool
+  - no_reboot_needed | bool
+  - service_autofs_disabled | bool
+  - medium_severity | bool
+  - low_disruption | bool
+  - low_complexity | bool
+  tags:
+  - service_autofs_disabled
+  - medium_severity
+  - disable_strategy
+  - low_complexity
+  - low_disruption
+  - no_reboot_needed
+  - CCE-27498-5
+  - NIST-800-53-AC-19(a)
+  - NIST-800-53-AC-19(d)
+  - NIST-800-53-AC-19(e)
+  - NIST-800-53-IA-3
+  - NIST-800-171-3.4.6
+  - DISA-STIG-RHEL-07-020110
+
+- name: Disable socket autofs
+  systemd:
     name: autofs.socket
     enabled: 'no'
     state: stopped
-  register: socket_result
-  failed_when: socket_result is failed and ('Could not find the requested service' not in socket_result.msg)
+    masked: 'yes'
   when:
+  - socket_file_exists.rc == 0
   - ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
   - disable_strategy | bool
   - no_reboot_needed | bool
@@ -3419,6 +3464,7 @@
   - NIST-800-53-SC-30(2)
   - NIST-800-53-SC-39
   - NIST-800-171-3.1.7
+  - DISA-STIG-RHEL-07-040201
 
 - name: Ensure kernel module 'dccp' is disabled
   lineinfile:
@@ -3445,6 +3491,7 @@
   - NIST-800-53-CM-7
   - NIST-800-171-3.4.6
   - CJIS-5.10.1
+  - DISA-STIG-RHEL-07-020101
 
 - name: Ensure sysctl net.ipv6.conf.all.accept_source_route is set
   sysctl:
@@ -3706,10 +3753,17 @@
   - DISA-STIG-RHEL-07-040630
 
 - name: Enable service firewalld
-  service:
-    name: firewalld
-    enabled: 'yes'
-    state: started
+  block:
+  - name: Gather the package facts
+    package_facts:
+      manager: auto
+  - name: Enable service firewalld
+    service:
+      name: firewalld
+      enabled: 'yes'
+      state: started
+    when:
+    - '"firewalld" in ansible_facts.packages'
   when:
   - ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
   - service_firewalld_enabled | bool
@@ -3736,6 +3790,7 @@
     dest: /etc/audit/auditd.conf
     line: action_mail_acct = {{ var_auditd_action_mail_acct }}
     state: present
+    create: true
   when:
   - ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
   - no_reboot_needed | bool
@@ -3785,6 +3840,7 @@
   - low_disruption
   - no_reboot_needed
   - CCE-80540-8
+  - DISA-STIG-RHEL-07-030310
 
 - name: Configure auditd space_left Action on Low Disk Space
   lineinfile:
@@ -3792,6 +3848,7 @@
     line: space_left_action = {{ var_auditd_space_left_action }}
     regexp: ^\s*space_left_action\s*=\s*.*$
     state: present
+    create: true
   when:
   - ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
   - no_reboot_needed | bool
@@ -3824,6 +3881,7 @@
     line: space_left = {{ var_auditd_space_left }}
     regexp: ^\s*space_left\s*=\s*.*$
     state: present
+    create: true
   when:
   - ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
   - no_reboot_needed | bool
@@ -3846,6 +3904,7 @@
   - NIST-800-53-IR-5
   - NIST-800-53-AU-5(1)
   - PCI-DSS-Req-10.7
+  - DISA-STIG-RHEL-07-030330
 
 - name: Set architecture for audit fremovexattr tasks
   set_fact:
@@ -4057,6 +4116,7 @@
     line: -a always,exit -F arch=b32 -S fremovexattr -F auid>=1000 -F auid!=unset -F key=perm_mod
     state: present
     dest: /etc/audit/audit.rules
+    create: true
   when:
   - ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
   - restrict_strategy | bool
@@ -4332,6 +4392,7 @@
     line: -a always,exit -F arch=b32 -S fchmod -F auid>=1000 -F auid!=unset -F key=perm_mod
     state: present
     dest: /etc/audit/audit.rules
+    create: true
   when:
   - ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
   - restrict_strategy | bool
@@ -4607,6 +4668,7 @@
     line: -a always,exit -F arch=b32 -S fsetxattr -F auid>=1000 -F auid!=unset -F key=perm_mod
     state: present
     dest: /etc/audit/audit.rules
+    create: true
   when:
   - ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
   - audit_rules_dac_modification_fsetxattr | bool
@@ -4882,6 +4944,7 @@
     line: -a always,exit -F arch=b32 -S fchown -F auid>=1000 -F auid!=unset -F key=perm_mod
     state: present
     dest: /etc/audit/audit.rules
+    create: true
   when:
   - ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
   - audit_rules_dac_modification_fchown | bool
@@ -5157,6 +5220,7 @@
     line: -a always,exit -F arch=b32 -S fchownat -F auid>=1000 -F auid!=unset -F key=perm_mod
     state: present
     dest: /etc/audit/audit.rules
+    create: true
   when:
   - ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
   - audit_rules_dac_modification_fchownat | bool
@@ -5432,6 +5496,7 @@
     line: -a always,exit -F arch=b32 -S chmod -F auid>=1000 -F auid!=unset -F key=perm_mod
     state: present
     dest: /etc/audit/audit.rules
+    create: true
   when:
   - ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
   - restrict_strategy | bool
@@ -5707,6 +5772,7 @@
     line: -a always,exit -F arch=b32 -S lremovexattr -F auid>=1000 -F auid!=unset -F key=perm_mod
     state: present
     dest: /etc/audit/audit.rules
+    create: true
   when:
   - ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
   - restrict_strategy | bool
@@ -5982,6 +6048,7 @@
     line: -a always,exit -F arch=b32 -S fchmodat -F auid>=1000 -F auid!=unset -F key=perm_mod
     state: present
     dest: /etc/audit/audit.rules
+    create: true
   when:
   - ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
   - restrict_strategy | bool
@@ -6257,6 +6324,7 @@
     line: -a always,exit -F arch=b32 -S lchown -F auid>=1000 -F auid!=unset -F key=perm_mod
     state: present
     dest: /etc/audit/audit.rules
+    create: true
   when:
   - ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
   - restrict_strategy | bool
@@ -6532,6 +6600,7 @@
     line: -a always,exit -F arch=b32 -S chown -F auid>=1000 -F auid!=unset -F key=perm_mod
     state: present
     dest: /etc/audit/audit.rules
+    create: true
   when:
   - ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
   - audit_rules_dac_modification_chown | bool
@@ -6807,6 +6876,7 @@
     line: -a always,exit -F arch=b32 -S lsetxattr -F auid>=1000 -F auid!=unset -F key=perm_mod
     state: present
     dest: /etc/audit/audit.rules
+    create: true
   when:
   - ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
   - audit_rules_dac_modification_lsetxattr | bool
@@ -7082,6 +7152,7 @@
     line: -a always,exit -F arch=b32 -S setxattr -F auid>=1000 -F auid!=unset -F key=perm_mod
     state: present
     dest: /etc/audit/audit.rules
+    create: true
   when:
   - ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
   - audit_rules_dac_modification_setxattr | bool
@@ -7357,6 +7428,7 @@
     line: -a always,exit -F arch=b32 -S removexattr -F auid>=1000 -F auid!=unset -F key=perm_mod
     state: present
     dest: /etc/audit/audit.rules
+    create: true
   when:
   - ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
   - restrict_strategy | bool
@@ -7578,6 +7650,7 @@
     line: -w /var/run/faillock -p wa -k logins
     state: present
     dest: /etc/audit/audit.rules
+    create: true
   when:
   - ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
   - audit_rules_login_events_faillock | bool
@@ -7759,6 +7832,7 @@
     line: -w /var/log/lastlog -p wa -k logins
     state: present
     dest: /etc/audit/audit.rules
+    create: true
   when:
   - ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
   - audit_rules_login_events_lastlog | bool
@@ -7940,6 +8014,7 @@
     line: -w /var/log/tallylog -p wa -k logins
     state: present
     dest: /etc/audit/audit.rules
+    create: true
   when:
   - ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
   - restrict_strategy | bool
@@ -11105,6 +11180,7 @@
     line: '{{ item }}'
     state: present
     dest: /etc/audit/audit.rules
+    create: true
   with_items:
   - -a always,exit -F arch=b32 -S ftruncate -F exit=-EACCES -F auid>=1000 -F auid!=unset -F key=access
   - -a always,exit -F arch=b32 -S ftruncate -F exit=-EPERM -F auid>=1000 -F auid!=unset -F key=access
@@ -11392,6 +11468,7 @@
     line: '{{ item }}'
     state: present
     dest: /etc/audit/audit.rules
+    create: true
   with_items:
   - -a always,exit -F arch=b32 -S truncate -F exit=-EACCES -F auid>=1000 -F auid!=unset -F key=access
   - -a always,exit -F arch=b32 -S truncate -F exit=-EPERM -F auid>=1000 -F auid!=unset -F key=access
@@ -11679,6 +11756,7 @@
     line: '{{ item }}'
     state: present
     dest: /etc/audit/audit.rules
+    create: true
   with_items:
   - -a always,exit -F arch=b32 -S open_by_handle_at -F exit=-EACCES -F auid>=1000 -F auid!=unset -F key=access
   - -a always,exit -F arch=b32 -S open_by_handle_at -F exit=-EPERM -F auid>=1000 -F auid!=unset -F key=access
@@ -11966,6 +12044,7 @@
     line: '{{ item }}'
     state: present
     dest: /etc/audit/audit.rules
+    create: true
   with_items:
   - -a always,exit -F arch=b32 -S openat -F exit=-EACCES -F auid>=1000 -F auid!=unset -F key=access
   - -a always,exit -F arch=b32 -S openat -F exit=-EPERM -F auid>=1000 -F auid!=unset -F key=access
@@ -12253,6 +12332,7 @@
     line: '{{ item }}'
     state: present
     dest: /etc/audit/audit.rules
+    create: true
   with_items:
   - -a always,exit -F arch=b32 -S open -F exit=-EACCES -F auid>=1000 -F auid!=unset -F key=access
   - -a always,exit -F arch=b32 -S open -F exit=-EPERM -F auid>=1000 -F auid!=unset -F key=access
@@ -12534,6 +12614,7 @@
     line: -a always,exit -F arch=b32 -S renameat -F auid>=1000 -F auid!=unset -F key=delete
     state: present
     dest: /etc/audit/audit.rules
+    create: true
   when:
   - ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
   - restrict_strategy | bool
@@ -12809,6 +12890,7 @@
     line: -a always,exit -F arch=b32 -S unlinkat -F auid>=1000 -F auid!=unset -F key=delete
     state: present
     dest: /etc/audit/audit.rules
+    create: true
   when:
   - ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
   - audit_rules_file_deletion_events_unlinkat | bool
@@ -13084,6 +13166,7 @@
     line: -a always,exit -F arch=b32 -S rename -F auid>=1000 -F auid!=unset -F key=delete
     state: present
     dest: /etc/audit/audit.rules
+    create: true
   when:
   - ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
   - restrict_strategy | bool
@@ -13359,6 +13442,7 @@
     line: -a always,exit -F arch=b32 -S rmdir -F auid>=1000 -F auid!=unset -F key=delete
     state: present
     dest: /etc/audit/audit.rules
+    create: true
   when:
   - ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
   - audit_rules_file_deletion_events_rmdir | bool
@@ -13634,6 +13718,7 @@
     line: -a always,exit -F arch=b32 -S unlink -F auid>=1000 -F auid!=unset -F key=delete
     state: present
     dest: /etc/audit/audit.rules
+    create: true
   when:
   - ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
   - restrict_strategy | bool
@@ -14235,194 +14320,6 @@
   - PCI-DSS-Req-10.2.7
   - DISA-STIG-RHEL-07-030820
 
-- name: Set architecture for audit create_module tasks
-  set_fact:
-    audit_arch: b{{ ansible_architecture | regex_replace('.*(\d\d$)','\1') }}
-  when:
-  - ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
-  - no_reboot_needed | bool
-  - medium_severity | bool
-  - configure_strategy | bool
-  - audit_rules_kernel_module_loading_create | bool
-  - low_disruption | bool
-  - low_complexity | bool
-  tags:
-  - audit_rules_kernel_module_loading_create
-  - medium_severity
-  - configure_strategy
-  - low_complexity
-  - low_disruption
-  - no_reboot_needed
-  - CCE-80661-2
-  - DISA-STIG-RHEL-07-030819
-
-- name: Search /etc/audit/rules.d for audit rule entries
-  find:
-    paths: /etc/audit/rules.d
-    recurse: false
-    contains: ^.*create_module.*$
-    patterns: '*.rules'
-  register: find_create_module
-  when:
-  - ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
-  - no_reboot_needed | bool
-  - medium_severity | bool
-  - configure_strategy | bool
-  - audit_rules_kernel_module_loading_create | bool
-  - low_disruption | bool
-  - low_complexity | bool
-  tags:
-  - audit_rules_kernel_module_loading_create
-  - medium_severity
-  - configure_strategy
-  - low_complexity
-  - low_disruption
-  - no_reboot_needed
-  - CCE-80661-2
-  - DISA-STIG-RHEL-07-030819
-
-- name: Use /etc/audit/rules.d/privileged.rules as the recipient for the rule
-  set_fact:
-    all_files:
-    - /etc/audit/rules.d/privileged.rules
-  when:
-  - find_create_module.matched is defined and find_create_module.matched == 0
-  - ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
-  - no_reboot_needed | bool
-  - medium_severity | bool
-  - configure_strategy | bool
-  - audit_rules_kernel_module_loading_create | bool
-  - low_disruption | bool
-  - low_complexity | bool
-  tags:
-  - audit_rules_kernel_module_loading_create
-  - medium_severity
-  - configure_strategy
-  - low_complexity
-  - low_disruption
-  - no_reboot_needed
-  - CCE-80661-2
-  - DISA-STIG-RHEL-07-030819
-
-- name: Use matched file as the recipient for the rule
-  set_fact:
-    all_files:
-    - '{{ find_create_module.files | map(attribute=''path'') | list | first }}'
-  when:
-  - find_create_module.matched is defined and find_create_module.matched > 0
-  - ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
-  - no_reboot_needed | bool
-  - medium_severity | bool
-  - configure_strategy | bool
-  - audit_rules_kernel_module_loading_create | bool
-  - low_disruption | bool
-  - low_complexity | bool
-  tags:
-  - audit_rules_kernel_module_loading_create
-  - medium_severity
-  - configure_strategy
-  - low_complexity
-  - low_disruption
-  - no_reboot_needed
-  - CCE-80661-2
-  - DISA-STIG-RHEL-07-030819
-
-- name: Inserts/replaces the create_module rule in rules.d
-  lineinfile:
-    path: '{{ all_files[0] }}'
-    line: -a always,exit -F arch=b32 -S create_module -k module-change
-    state: present
-    create: true
-  when:
-  - ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
-  - no_reboot_needed | bool
-  - medium_severity | bool
-  - configure_strategy | bool
-  - audit_rules_kernel_module_loading_create | bool
-  - low_disruption | bool
-  - low_complexity | bool
-  tags:
-  - audit_rules_kernel_module_loading_create
-  - medium_severity
-  - configure_strategy
-  - low_complexity
-  - low_disruption
-  - no_reboot_needed
-  - CCE-80661-2
-  - DISA-STIG-RHEL-07-030819
-
-- name: Inserts/replaces the create_module rule in rules.d on x86_64
-  lineinfile:
-    path: '{{ all_files[0] }}'
-    line: -a always,exit -F arch=b64 -S create_module -k module-change
-    state: present
-    create: true
-  when:
-  - audit_arch is defined and audit_arch == 'b64'
-  - ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
-  - no_reboot_needed | bool
-  - medium_severity | bool
-  - configure_strategy | bool
-  - audit_rules_kernel_module_loading_create | bool
-  - low_disruption | bool
-  - low_complexity | bool
-  tags:
-  - audit_rules_kernel_module_loading_create
-  - medium_severity
-  - configure_strategy
-  - low_complexity
-  - low_disruption
-  - no_reboot_needed
-  - CCE-80661-2
-  - DISA-STIG-RHEL-07-030819
-
-- name: Inserts/replaces the create_module rule in audit.rules
-  lineinfile:
-    path: /etc/audit/audit.rules
-    line: -a always,exit -F arch=b32 -S create_module -k module-change
-    create: true
-  when:
-  - ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
-  - no_reboot_needed | bool
-  - medium_severity | bool
-  - configure_strategy | bool
-  - audit_rules_kernel_module_loading_create | bool
-  - low_disruption | bool
-  - low_complexity | bool
-  tags:
-  - audit_rules_kernel_module_loading_create
-  - medium_severity
-  - configure_strategy
-  - low_complexity
-  - low_disruption
-  - no_reboot_needed
-  - CCE-80661-2
-  - DISA-STIG-RHEL-07-030819
-
-- name: Inserts/replaces the create_module rule in audit.rules when on x86_64
-  lineinfile:
-    path: /etc/audit/audit.rules
-    line: -a always,exit -F arch=b64 -S create_module -k module-change
-    create: true
-  when:
-  - audit_arch is defined and audit_arch == 'b64'
-  - ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
-  - no_reboot_needed | bool
-  - medium_severity | bool
-  - configure_strategy | bool
-  - audit_rules_kernel_module_loading_create | bool
-  - low_disruption | bool
-  - low_complexity | bool
-  tags:
-  - audit_rules_kernel_module_loading_create
-  - medium_severity
-  - configure_strategy
-  - low_complexity
-  - low_disruption
-  - no_reboot_needed
-  - CCE-80661-2
-  - DISA-STIG-RHEL-07-030819
-
 - name: Set architecture for audit finit_module tasks
   set_fact:
     audit_arch: b{{ ansible_architecture | regex_replace('.*(\d\d$)','\1') }}
@@ -14872,6 +14769,7 @@
     line: -w /etc/security/opasswd -p wa -k audit_rules_usergroup_modification
     state: present
     dest: /etc/audit/audit.rules
+    create: true
   when:
   - ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
   - restrict_strategy | bool
@@ -15083,6 +14981,7 @@
     line: -w /etc/shadow -p wa -k audit_rules_usergroup_modification
     state: present
     dest: /etc/audit/audit.rules
+    create: true
   when:
   - ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
   - audit_rules_usergroup_modification_shadow | bool
@@ -15294,6 +15193,7 @@
     line: -w /etc/gshadow -p wa -k audit_rules_usergroup_modification
     state: present
     dest: /etc/audit/audit.rules
+    create: true
   when:
   - ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
   - audit_rules_usergroup_modification_gshadow | bool
@@ -15505,6 +15405,7 @@
     line: -w /etc/passwd -p wa -k audit_rules_usergroup_modification
     state: present
     dest: /etc/audit/audit.rules
+    create: true
   when:
   - ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
   - restrict_strategy | bool
@@ -15716,6 +15617,7 @@
     line: -w /etc/group -p wa -k audit_rules_usergroup_modification
     state: present
     dest: /etc/audit/audit.rules
+    create: true
   when:
   - ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
   - restrict_strategy | bool
@@ -15747,10 +15649,17 @@
   - DISA-STIG-RHEL-07-030871
 
 - name: Enable service auditd
-  service:
-    name: auditd
-    enabled: 'yes'
-    state: started
+  block:
+  - name: Gather the package facts
+    package_facts:
+      manager: auto
+  - name: Enable service auditd
+    service:
+      name: auditd
+      enabled: 'yes'
+      state: started
+    when:
+    - '"audit" in ansible_facts.packages'
   when:
   - ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
   - no_reboot_needed | bool
@@ -15945,6 +15854,7 @@
     dest: /etc/login.defs
     regexp: ^FAIL_DELAY
     line: FAIL_DELAY {{ var_accounts_fail_delay }}
+    create: true
   tags:
   - accounts_logon_fail_delay
   - low_severity
@@ -15971,6 +15881,7 @@
     insertbefore: ^# End of file
     regexp: ^#?\*.*maxlogins
     line: '*           hard    maxlogins     {{ var_accounts_max_concurrent_login_sessions }}'
+    create: true
   tags:
   - accounts_max_concurrent_login_sessions
   - low_severity
@@ -16283,6 +16194,7 @@
     regexp: ^#?ENCRYPT_METHOD
     line: ENCRYPT_METHOD SHA512
     state: present
+    create: true
   tags:
   - set_password_hashing_algorithm_logindefs
   - medium_severity
@@ -16314,6 +16226,7 @@
     regexp: ^#?crypt_style
     line: crypt_style = sha512
     state: present
+    create: true
   tags:
   - set_password_hashing_algorithm_libuserconf
   - medium_severity
