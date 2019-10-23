@@ -38,12 +38,12 @@ N/A
 
 ## Example Playbook
 
-Run `ansible-galaxy install RedHatOfficial.rhel7_stig` to
+Run `ansible-galaxy install redhatofficial.rhel7_stig` to
 download and install the role. Then, you can use the following playbook snippet to run the Ansible role:
 
     - hosts: all
       roles:
-         - { role: RedHatOfficial.rhel7_stig }
+         - { role: redhatofficial.rhel7_stig }
 
 Next, check the playbook using (on the localhost) the following example:
 
