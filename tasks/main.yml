@@ -17417,8 +17417,8 @@
     state: mounted
     opts: '{{ item.split()[3] }},noexec'
   when:
-  - (points_register.stdout | length > 0)
   - mount_option_noexec_remote_filesystems | bool
+  - (points_register.stdout | length > 0)
   - no_reboot_needed | bool
   - configure_strategy | bool
   - medium_severity | bool
@@ -17466,8 +17466,8 @@
     state: mounted
     opts: '{{ item.split()[3] }},nosuid'
   when:
-  - (points_register.stdout | length > 0)
   - mount_option_nosuid_remote_filesystems | bool
+  - (points_register.stdout | length > 0)
   - no_reboot_needed | bool
   - configure_strategy | bool
   - medium_severity | bool
@@ -17515,11 +17515,11 @@
     state: mounted
     opts: '{{ item.split()[3] }},sec=krb5:krb5i:krb5p'
   when:
+  - mount_option_krb_sec_remote_filesystems | bool
   - (points_register.stdout | length > 0)
   - no_reboot_needed | bool
   - configure_strategy | bool
   - medium_severity | bool
-  - mount_option_krb_sec_remote_filesystems | bool
   - medium_disruption | bool
   - low_complexity | bool
   tags:
