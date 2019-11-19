@@ -740,6 +740,7 @@
     name: dracut-fips-aesni
     state: present
   when:
+  - grub2_enable_fips_mode | bool
   - aesni_supported.rc == 0
   - ansible_distribution == 'RedHat'
   - ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
@@ -747,7 +748,6 @@
   - restrict_strategy | bool
   - reboot_required | bool
   - high_severity | bool
-  - grub2_enable_fips_mode | bool
   - medium_disruption | bool
   tags:
   - grub2_enable_fips_mode
