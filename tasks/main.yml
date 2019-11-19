@@ -650,13 +650,13 @@
     regexp: ^#?PRELINKING
     line: PRELINKING=no
   when:
+  - grub2_enable_fips_mode | bool
   - prelink_exists.stat.exists
   - ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
   - high_complexity | bool
   - restrict_strategy | bool
   - reboot_required | bool
   - high_severity | bool
-  - grub2_enable_fips_mode | bool
   - medium_disruption | bool
   tags:
   - grub2_enable_fips_mode
@@ -679,13 +679,13 @@
 - name: revert prelinking binaries
   command: /usr/sbin/prelink -ua
   when:
+  - grub2_enable_fips_mode | bool
   - prelink_exists.stat.exists
   - ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
   - high_complexity | bool
   - restrict_strategy | bool
   - reboot_required | bool
   - high_severity | bool
-  - grub2_enable_fips_mode | bool
   - medium_disruption | bool
   tags:
   - grub2_enable_fips_mode
@@ -861,13 +861,13 @@
     regexp: fips=.
     replace: fips=1
   when:
+  - grub2_enable_fips_mode | bool
   - fipsargcheck.rc == 0
   - ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
   - high_complexity | bool
   - restrict_strategy | bool
   - reboot_required | bool
   - high_severity | bool
-  - grub2_enable_fips_mode | bool
   - medium_disruption | bool
   tags:
   - grub2_enable_fips_mode
@@ -893,13 +893,13 @@
     regexp: (GRUB_CMDLINE_LINUX=.*)"
     replace: \1 fips=1"
   when:
+  - grub2_enable_fips_mode | bool
   - fipsargcheck.rc != 0
   - ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
   - high_complexity | bool
   - restrict_strategy | bool
   - reboot_required | bool
   - high_severity | bool
-  - grub2_enable_fips_mode | bool
   - medium_disruption | bool
   tags:
   - grub2_enable_fips_mode
@@ -984,13 +984,13 @@
     regexp: boot=\w*-\w*-\w*-\w*-\w*
     replace: boot={{ bootuuid.stdout }}
   when:
+  - grub2_enable_fips_mode | bool
   - bootargcheck.rc == 0
   - ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
   - high_complexity | bool
   - restrict_strategy | bool
   - reboot_required | bool
   - high_severity | bool
-  - grub2_enable_fips_mode | bool
   - medium_disruption | bool
   tags:
   - grub2_enable_fips_mode
@@ -1016,13 +1016,13 @@
     regexp: (GRUB_CMDLINE_LINUX=.*)"
     replace: \1 boot=UUID={{ bootuuid.stdout }}"
   when:
+  - grub2_enable_fips_mode | bool
   - bootargcheck.rc != 0
   - ansible_virtualization_role != "guest" or ansible_virtualization_type != "docker"
   - high_complexity | bool
   - restrict_strategy | bool
   - reboot_required | bool
   - high_severity | bool
-  - grub2_enable_fips_mode | bool
   - medium_disruption | bool
   tags:
   - grub2_enable_fips_mode
