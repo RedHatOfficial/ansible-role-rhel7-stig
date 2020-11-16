@@ -6,7 +6,7 @@ services:
 language: python
 
 install:
-  - python3 -m install molecule docker testinfra
+  - python3 -m pip install molecule docker testinfra
 
 script:
   - molecule test --scenario-name docker
