@@ -3,10 +3,11 @@ dependency:
   name: galaxy
 driver:
   name: docker
-lint:
-  name: yamllint
-  options:
-    config-file: .yamllint
+lint: |
+  set -e
+  yamllint .
+  ansible-lint
+  flake8
 platforms:
   - name: instance
     image: centos:7
@@ -22,9 +23,6 @@ platforms:
 provisioner:
   name: ansible
   log: true
-  lint:
-    name: |
-      ansible-lint
 scenario:
   name: docker
   test_sequence:
@@ -38,6 +36,3 @@ scenario:
     - destroy
 verifier:
   name: testinfra
-  lint:
-    name: flake8
-    enabled: true
