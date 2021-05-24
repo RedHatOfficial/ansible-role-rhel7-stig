@@ -23,7 +23,8 @@ provisioner:
   name: ansible
   log: true
   lint:
-    name: ansible-lint
+    name: |
+      ansible-lint
 scenario:
   name: docker
   test_sequence:
