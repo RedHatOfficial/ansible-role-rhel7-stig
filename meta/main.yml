@@ -2,7 +2,6 @@ galaxy_info:
   role_name: rhel7_stig
   author: ComplianceAsCode development team
   description: DISA STIG for Red Hat Enterprise Linux 7
-  company: "Red Hat, Inc."
 
   issue_tracker_url: https://github.com/ComplianceAsCode/content/issues
 
@@ -24,9 +23,11 @@ galaxy_info:
   - security
   - compliance
   - complianceascode
-  - disa
-  - stig
   - redhatofficial
   - redhat
+  - rhel7
+  - stig
+  - disa
+
 
 dependencies: []
