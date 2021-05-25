@@ -10,7 +10,7 @@ lint: |
   flake8
 platforms:
   - name: instance
-    image: centos:7
+    image: quay.io/cmatos/molecule-centos7
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:ro
     command: /usr/sbin/init
