@@ -4,10 +4,9 @@ services:
   - docker
 
 language: python
-python: "2.7"
 
 install:
-  - pip install molecule docker
+  - python3 -m pip install molecule[docker,lint,ansible]
 
 script:
   - molecule test --scenario-name docker

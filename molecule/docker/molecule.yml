@@ -4,9 +4,9 @@ dependency:
 driver:
   name: docker
 lint: |
-  set -e
+  set -ex
   yamllint .
-  ansible-lint
+  ansible-lint .
   flake8
 platforms:
   - name: instance
@@ -22,17 +22,14 @@ platforms:
       - docker
 provisioner:
   name: ansible
-  log: true
 scenario:
-  name: docker
   test_sequence:
-    - lint
-    - destroy
-    - syntax
-    - create
-    - prepare
-    - converge
-#    - idempotence
-    - destroy
+  - lint
+  - destroy
+  - syntax
+  - create
+  - prepare
+  - converge
+  - destroy
 verifier:
-  name: testinfra
+  name: ansible
