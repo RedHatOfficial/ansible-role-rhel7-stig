@@ -27,7 +27,7 @@ var_accounts_tmout: '900'
 var_accounts_user_umask: '077'
 var_audispd_remote_server: logcollector
 var_auditd_action_mail_acct: root
-var_auditd_space_left: '100'
+var_auditd_space_left: '75'
 var_auditd_space_left_action: email
 rsyslog_remote_loghost_address: logcollector
 sysctl_net_ipv6_conf_all_accept_source_route_value: '0'
@@ -40,14 +40,15 @@ sysctl_net_ipv4_conf_default_rp_filter_value: '1'
 sysctl_net_ipv4_icmp_echo_ignore_broadcasts_value: '1'
 var_removable_partition: /dev/cdrom
 var_selinux_policy_name: targeted
-var_selinux_state: enforcing
-var_tftpd_secure_directory: /var/lib/tftpboot
-var_snmpd_ro_string: changemero
-var_snmpd_rw_string: changemerw
+var_selinux_state: enabled
+# var_tftpd_secure_directory: /var/lib/tftpboot
+# var_snmpd_ro_string: changemero
+# var_snmpd_rw_string: changemerw
 var_sshd_disable_compression: 'no'
 sshd_idle_timeout_value: '600'
 var_sshd_priv_separation: sandbox
-var_sssd_ldap_tls_ca_dir: /etc/openldap/cacerts
+var_sssd_ldap_tls_ca_dir: /etc/openldap/certs
+# I have reviewed to this point
 account_disable_post_pw_expiration: true
 accounts_have_homedir_login_defs: true
 accounts_logon_fail_delay: true
