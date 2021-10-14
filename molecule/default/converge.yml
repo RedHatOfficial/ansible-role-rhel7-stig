@@ -1,7 +1,8 @@
 ---
 - name: Converge
   hosts: all
-  tasks:
-    - name: "Include ansible-role-rhel7-stig"
-      include_role:
-        name: "ansible-role-rhel7-stig"
+  gather_facts: true
+  become: true
+
+  roles:
+    - role: redhatofficial.rhel7-stig
