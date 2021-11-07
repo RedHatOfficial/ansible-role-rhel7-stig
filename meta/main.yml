@@ -1,5 +1,6 @@
 galaxy_info:
   role_name: rhel7_stig
+  namespace: redhatofficial
   author: ComplianceAsCode development team
   description: DISA STIG for Red Hat Enterprise Linux 7
 
