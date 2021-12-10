@@ -3132,7 +3132,7 @@
 - name: Modify the System Login Banner - ensure correct banner
   copy:
     dest: /etc/issue
-    content: '{{ login_banner_text | regex_replace("^\^(.*)\$$", "\1") | regex_replace("^\((.*)\|.*\)$", "\1") | regex_replace("\[\\s\\n\]\+","
+    content: '{{ login_banner_text | regex_replace("^\^(.*)\$$", "\1") | regex_replace("^\((.*\.)\|.*\)$", "\1") | regex_replace("\[\\s\\n\]\+","
       ") | regex_replace("\(\?:\[\\n\]\+\|\(\?:\\\\n\)\+\)", "\n") | regex_replace("\\", "") | wordwrap() }}'
   when:
   - banner_etc_issue | bool
@@ -3351,7 +3351,7 @@
     dest: /etc/dconf/db/gdm.d/00-security-settings
     section: org/gnome/login-screen
     option: banner-message-text
-    value: '''{{ login_banner_text | regex_replace("^\^(.*)\$$", "\1") | regex_replace("^\((.*)\|.*\)$", "\1") | regex_replace("\[\\s\\n\]\+","
+    value: '''{{ login_banner_text | regex_replace("^\^(.*)\$$", "\1") | regex_replace("^\((.*\.)\|.*\)$", "\1") | regex_replace("\[\\s\\n\]\+","
       ") | regex_replace("\(\?:\[\\n\]\+\|\(\?:\\\\n\)\+\)", "(n)*") | regex_replace("\\", "") | regex_replace("\(n\)\*",
       "\\n") }}'''
     create: true
@@ -3657,6 +3657,62 @@
   replace:
     dest: /etc/pam.d/system-auth
     regexp: ^password\s+sufficient\s+pam_unix\.so\s(?!.*remember\s*=\s*).*$
+    replace: \g<0> remember={{ var_password_pam_unix_remember }}
+  when:
+  - accounts_password_pam_unix_remember | bool
+  - configure_strategy | bool
+  - low_complexity | bool
+  - medium_disruption | bool
+  - medium_severity | bool
+  - no_reboot_needed | bool
+  - '"pam" in ansible_facts.packages'
+  tags:
+  - CCE-82030-8
+  - CJIS-5.6.2.1.1
+  - DISA-STIG-RHEL-07-010270
+  - NIST-800-171-3.5.8
+  - NIST-800-53-IA-5(1)(e)
+  - NIST-800-53-IA-5(f)
+  - PCI-DSS-Req-8.2.5
+  - accounts_password_pam_unix_remember
+  - configure_strategy
+  - low_complexity
+  - medium_disruption
+  - medium_severity
+  - no_reboot_needed
+
+- name: Do not allow users to reuse recent passwords - system-auth (change)
+  replace:
+    dest: /etc/pam.d/system-auth
+    regexp: ^(password\s+(?:(?:requisite)|(?:required))\s+pam_pwhistory\.so\s.*remember\s*=\s*)(\S+)(.*)$
+    replace: \g<1>{{ var_password_pam_unix_remember }}\g<3>
+  when:
+  - accounts_password_pam_unix_remember | bool
+  - configure_strategy | bool
+  - low_complexity | bool
+  - medium_disruption | bool
+  - medium_severity | bool
+  - no_reboot_needed | bool
+  - '"pam" in ansible_facts.packages'
+  tags:
+  - CCE-82030-8
+  - CJIS-5.6.2.1.1
+  - DISA-STIG-RHEL-07-010270
+  - NIST-800-171-3.5.8
+  - NIST-800-53-IA-5(1)(e)
+  - NIST-800-53-IA-5(f)
+  - PCI-DSS-Req-8.2.5
+  - accounts_password_pam_unix_remember
+  - configure_strategy
+  - low_complexity
+  - medium_disruption
+  - medium_severity
+  - no_reboot_needed
+
+- name: Do not allow users to reuse recent passwords - system-auth (add)
+  replace:
+    dest: /etc/pam.d/system-auth
+    regexp: ^password\s+(?:(?:requisite)|(?:required))\s+pam_pwhistory\.so\s(?!.*remember\s*=\s*).*$
     replace: \g<0> remember={{ var_password_pam_unix_remember }}
   when:
   - accounts_password_pam_unix_remember | bool
@@ -5728,6 +5784,270 @@
   - NIST-800-53-CM-6(a)
   - NIST-800-53-SC-10
   - accounts_tmout
+  - low_complexity
+  - low_disruption
+  - medium_severity
+  - no_reboot_needed
+  - restrict_strategy
+
+- name: Get all local users from /etc/passwd
+  ansible.builtin.getent:
+    database: passwd
+    split: ':'
+  tags:
+  - CCE-80532-5
+  - DISA-STIG-RHEL-07-020650
+  - file_groupownership_home_directories
+  - low_complexity
+  - low_disruption
+  - medium_severity
+  - no_reboot_needed
+  - restrict_strategy
+  when:
+  - file_groupownership_home_directories | bool
+  - low_complexity | bool
+  - low_disruption | bool
+  - medium_severity | bool
+  - no_reboot_needed | bool
+  - restrict_strategy | bool
+
+- name: Create local_users variable from the getent output
+  ansible.builtin.set_fact:
+    local_users: '{{ ansible_facts.getent_passwd|dict2items }}'
+  tags:
+  - CCE-80532-5
+  - DISA-STIG-RHEL-07-020650
+  - file_groupownership_home_directories
+  - low_complexity
+  - low_disruption
+  - medium_severity
+  - no_reboot_needed
+  - restrict_strategy
+  when:
+  - file_groupownership_home_directories | bool
+  - low_complexity | bool
+  - low_disruption | bool
+  - medium_severity | bool
+  - no_reboot_needed | bool
+  - restrict_strategy | bool
+
+- name: Test for existence of home directories to avoid creating them, but only fixing group ownership
+  ansible.builtin.stat:
+    path: '{{ item.value[4] }}'
+  register: path_exists
+  loop: '{{ local_users }}'
+  when:
+  - file_groupownership_home_directories | bool
+  - low_complexity | bool
+  - low_disruption | bool
+  - medium_severity | bool
+  - no_reboot_needed | bool
+  - restrict_strategy | bool
+  - item.value[2]|int >= 1000
+  - item.value[2]|int != 65534
+  tags:
+  - CCE-80532-5
+  - DISA-STIG-RHEL-07-020650
+  - file_groupownership_home_directories
+  - low_complexity
+  - low_disruption
+  - medium_severity
+  - no_reboot_needed
+  - restrict_strategy
+
+- name: Ensure interactive local users are the group-owners of their respective home directories
+  ansible.builtin.file:
+    path: '{{ item.0.value[4] }}'
+    group: '{{ item.0.value[2] }}'
+  loop: '{{ local_users|zip(path_exists.results)|list }}'
+  when:
+  - file_groupownership_home_directories | bool
+  - low_complexity | bool
+  - low_disruption | bool
+  - medium_severity | bool
+  - no_reboot_needed | bool
+  - restrict_strategy | bool
+  - item.1.stat is defined and item.1.stat.exists
+  tags:
+  - CCE-80532-5
+  - DISA-STIG-RHEL-07-020650
+  - file_groupownership_home_directories
+  - low_complexity
+  - low_disruption
+  - medium_severity
+  - no_reboot_needed
+  - restrict_strategy
+
+- name: Get all local users from /etc/passwd
+  ansible.builtin.getent:
+    database: passwd
+    split: ':'
+  tags:
+  - CCE-80531-7
+  - DISA-STIG-RHEL-07-020640
+  - file_ownership_home_directories
+  - low_complexity
+  - low_disruption
+  - medium_severity
+  - no_reboot_needed
+  - restrict_strategy
+  when:
+  - file_ownership_home_directories | bool
+  - low_complexity | bool
+  - low_disruption | bool
+  - medium_severity | bool
+  - no_reboot_needed | bool
+  - restrict_strategy | bool
+
+- name: Create local_users variable from the getent output
+  ansible.builtin.set_fact:
+    local_users: '{{ ansible_facts.getent_passwd|dict2items }}'
+  tags:
+  - CCE-80531-7
+  - DISA-STIG-RHEL-07-020640
+  - file_ownership_home_directories
+  - low_complexity
+  - low_disruption
+  - medium_severity
+  - no_reboot_needed
+  - restrict_strategy
+  when:
+  - file_ownership_home_directories | bool
+  - low_complexity | bool
+  - low_disruption | bool
+  - medium_severity | bool
+  - no_reboot_needed | bool
+  - restrict_strategy | bool
+
+- name: Test for existence home directories to avoid creating them, but only fixing ownership
+  ansible.builtin.stat:
+    path: '{{ item.value[4] }}'
+  register: path_exists
+  loop: '{{ local_users }}'
+  when:
+  - file_ownership_home_directories | bool
+  - low_complexity | bool
+  - low_disruption | bool
+  - medium_severity | bool
+  - no_reboot_needed | bool
+  - restrict_strategy | bool
+  - item.value[1]|int >= 1000
+  - item.value[1]|int != 65534
+  tags:
+  - CCE-80531-7
+  - DISA-STIG-RHEL-07-020640
+  - file_ownership_home_directories
+  - low_complexity
+  - low_disruption
+  - medium_severity
+  - no_reboot_needed
+  - restrict_strategy
+
+- name: Ensure interactive local users are the owners of their respective home directories
+  ansible.builtin.file:
+    path: '{{ item.0.value[4] }}'
+    owner: '{{ item.0.value[1] }}'
+  loop: '{{ local_users|zip(path_exists.results)|list }}'
+  when:
+  - file_ownership_home_directories | bool
+  - low_complexity | bool
+  - low_disruption | bool
+  - medium_severity | bool
+  - no_reboot_needed | bool
+  - restrict_strategy | bool
+  - item.1.stat is defined and item.1.stat.exists
+  tags:
+  - CCE-80531-7
+  - DISA-STIG-RHEL-07-020640
+  - file_ownership_home_directories
+  - low_complexity
+  - low_disruption
+  - medium_severity
+  - no_reboot_needed
+  - restrict_strategy
+
+- name: Get all local users from /etc/passwd
+  ansible.builtin.getent:
+    database: passwd
+    split: ':'
+  tags:
+  - CCE-80530-9
+  - DISA-STIG-RHEL-07-020630
+  - file_permissions_home_directories
+  - low_complexity
+  - low_disruption
+  - medium_severity
+  - no_reboot_needed
+  - restrict_strategy
+  when:
+  - file_permissions_home_directories | bool
+  - low_complexity | bool
+  - low_disruption | bool
+  - medium_severity | bool
+  - no_reboot_needed | bool
+  - restrict_strategy | bool
+
+- name: Create local_users variable from the getent output
+  ansible.builtin.set_fact:
+    local_users: '{{ ansible_facts.getent_passwd|dict2items }}'
+  tags:
+  - CCE-80530-9
+  - DISA-STIG-RHEL-07-020630
+  - file_permissions_home_directories
+  - low_complexity
+  - low_disruption
+  - medium_severity
+  - no_reboot_needed
+  - restrict_strategy
+  when:
+  - file_permissions_home_directories | bool
+  - low_complexity | bool
+  - low_disruption | bool
+  - medium_severity | bool
+  - no_reboot_needed | bool
+  - restrict_strategy | bool
+
+- name: Test for existence home directories to avoid creating them, but only fixing group ownership
+  ansible.builtin.stat:
+    path: '{{ item.value[4] }}'
+  register: path_exists
+  loop: '{{ local_users }}'
+  when:
+  - file_permissions_home_directories | bool
+  - low_complexity | bool
+  - low_disruption | bool
+  - medium_severity | bool
+  - no_reboot_needed | bool
+  - restrict_strategy | bool
+  - item.value[2]|int >= 1000
+  - item.value[2]|int != 65534
+  tags:
+  - CCE-80530-9
+  - DISA-STIG-RHEL-07-020630
+  - file_permissions_home_directories
+  - low_complexity
+  - low_disruption
+  - medium_severity
+  - no_reboot_needed
+  - restrict_strategy
+
+- name: Ensure interactive local users are the group-owners of their respective home directories
+  ansible.builtin.file:
+    path: '{{ item.0.value[4] }}'
+    mode: '0700'
+  loop: '{{ local_users|zip(path_exists.results)|list }}'
+  when:
+  - file_permissions_home_directories | bool
+  - low_complexity | bool
+  - low_disruption | bool
+  - medium_severity | bool
+  - no_reboot_needed | bool
+  - restrict_strategy | bool
+  - item.1.stat is defined and item.1.stat.exists
+  tags:
+  - CCE-80530-9
+  - DISA-STIG-RHEL-07-020630
+  - file_permissions_home_directories
   - low_complexity
   - low_disruption
   - medium_severity
@@ -20797,6 +21117,8 @@
   tags:
   - CCE-82359-1
   - DISA-STIG-RHEL-07-030211
+  - NIST-800-53-AU-3
+  - NIST-800-53-CM-6
   - auditd_name_format
   - low_complexity
   - low_disruption
@@ -20847,6 +21169,8 @@
   tags:
   - CCE-82359-1
   - DISA-STIG-RHEL-07-030211
+  - NIST-800-53-AU-3
+  - NIST-800-53-CM-6
   - auditd_name_format
   - low_complexity
   - low_disruption
@@ -20879,24 +21203,24 @@
   block:
   - name: Check for duplicate values
     lineinfile:
-      path: /etc/audit/auditd.conf
+      path: /etc/audisp/audispd.conf
       create: false
       regexp: (?i)^\s*overflow_action\s*=\s*
       state: absent
     check_mode: true
     changed_when: false
     register: dupes
-  - name: Deduplicate values from /etc/audit/auditd.conf
+  - name: Deduplicate values from /etc/audisp/audispd.conf
     lineinfile:
-      path: /etc/audit/auditd.conf
+      path: /etc/audisp/audispd.conf
       create: false
       regexp: (?i)^\s*overflow_action\s*=\s*
       state: absent
     when: dupes.found is defined and dupes.found > 1
-  - name: Insert correct line to /etc/audit/auditd.conf
+  - name: Insert correct line to /etc/audisp/audispd.conf
     lineinfile:
-      path: /etc/audit/auditd.conf
-      create: false
+      path: /etc/audisp/audispd.conf
+      create: true
       regexp: (?i)^\s*overflow_action\s*=\s*
       line: overflow_action = syslog
       state: present
@@ -21340,6 +21664,33 @@
   - medium_severity
   - reboot_required
 
+- name: Gather the package facts
+  package_facts:
+    manager: auto
+  tags:
+  - CCE-27358-1
+  - DISA-STIG-RHEL-07-041010
+  - NIST-800-171-3.1.16
+  - NIST-800-53-AC-18(3)
+  - NIST-800-53-AC-18(a)
+  - NIST-800-53-CM-6(a)
+  - NIST-800-53-CM-7(a)
+  - NIST-800-53-CM-7(b)
+  - NIST-800-53-MP-7
+  - low_complexity
+  - medium_disruption
+  - medium_severity
+  - no_reboot_needed
+  - unknown_strategy
+  - wireless_disable_interfaces
+  when:
+  - low_complexity | bool
+  - medium_disruption | bool
+  - medium_severity | bool
+  - no_reboot_needed | bool
+  - unknown_strategy | bool
+  - wireless_disable_interfaces | bool
+
 - name: Deactivate Wireless Network Interfaces
   command: nmcli radio wifi off
   when:
@@ -21349,7 +21700,7 @@
   - no_reboot_needed | bool
   - unknown_strategy | bool
   - wireless_disable_interfaces | bool
-  - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
+  - '"wifi-iface" in ansible_facts.packages'
   tags:
   - CCE-27358-1
   - DISA-STIG-RHEL-07-041010
@@ -22282,6 +22633,51 @@
   - restrict_strategy
   - selinux_state
 
+- name: Ensure libsemanage-python installed
+  package:
+    name: libsemanage-python
+    state: present
+  when:
+  - enable_strategy | bool
+  - low_complexity | bool
+  - low_disruption | bool
+  - medium_severity | bool
+  - no_reboot_needed | bool
+  - sebool_ssh_sysadm_login | bool
+  - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
+  tags:
+  - CCE-82327-8
+  - DISA-STIG-RHEL-07-020022
+  - enable_strategy
+  - low_complexity
+  - low_disruption
+  - medium_severity
+  - no_reboot_needed
+  - sebool_ssh_sysadm_login
+
+- name: Set SELinux boolean ssh_sysadm_login accordingly
+  seboolean:
+    name: ssh_sysadm_login
+    state: '{{ var_ssh_sysadm_login }}'
+    persistent: true
+  when:
+  - enable_strategy | bool
+  - low_complexity | bool
+  - low_disruption | bool
+  - medium_severity | bool
+  - no_reboot_needed | bool
+  - sebool_ssh_sysadm_login | bool
+  - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
+  tags:
+  - CCE-82327-8
+  - DISA-STIG-RHEL-07-020022
+  - enable_strategy
+  - low_complexity
+  - low_disruption
+  - medium_severity
+  - no_reboot_needed
+  - sebool_ssh_sysadm_login
+
 - name: Disable service kdump
   block:
   - name: Gather the service facts
@@ -23042,7 +23438,7 @@
 - name: Set permissions for /etc/ssh/ file(s)
   file:
     path: '{{ item.path }}'
-    mode: '0640'
+    mode: '0600'
   with_items:
   - '{{ files_found.files }}'
   when:
@@ -23576,7 +23972,6 @@
   - DISA-STIG-RHEL-07-040370
   - NIST-800-171-3.1.1
   - NIST-800-171-3.1.5
-  - NIST-800-53-
   - NIST-800-53-AC-17(a)
   - NIST-800-53-AC-6(2)
   - NIST-800-53-CM-6(a)
