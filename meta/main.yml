@@ -1,6 +1,5 @@
 galaxy_info:
   role_name: rhel7_stig
-  namespace: RedHatOfficial
   author: ComplianceAsCode development team
   description: DISA STIG for Red Hat Enterprise Linux 7
 
@@ -8,7 +7,7 @@ galaxy_info:
 
   license: BSD-3-Clause
 
-  min_ansible_version: 2.5
+  min_ansible_version: 2.9
 
   platforms:
   - name: EL
