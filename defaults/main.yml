@@ -43,6 +43,7 @@ var_removable_partition: /dev/cdrom
 var_selinux_policy_name: targeted
 var_selinux_state: enforcing
 var_ssh_sysadm_login: 'false'
+var_time_service_set_maxpoll: '10'
 var_tftpd_secure_directory: /var/lib/tftpboot
 var_snmpd_ro_string: changemero
 var_snmpd_rw_string: changemerw
@@ -74,6 +75,14 @@ accounts_passwords_pam_faillock_interval: true
 accounts_passwords_pam_faillock_unlock_time: true
 accounts_tmout: true
 accounts_umask_etc_login_defs: true
+accounts_umask_interactive_users: true
+accounts_user_dot_group_ownership: true
+accounts_user_dot_no_world_writable_programs: true
+accounts_user_dot_user_ownership: true
+accounts_user_interactive_home_directory_exists: true
+accounts_users_home_files_groupownership: true
+accounts_users_home_files_ownership: true
+accounts_users_home_files_permissions: true
 aide_periodic_cron_checking: true
 aide_scan_notification: true
 audit_rules_dac_modification_chmod: true
@@ -142,6 +151,7 @@ auditd_data_retention_space_left_percentage: true
 auditd_name_format: true
 auditd_overflow_action: true
 banner_etc_issue: true
+chronyd_or_ntpd_set_maxpoll: true
 clean_components_post_updating: true
 configure_strategy: true
 dconf_gnome_banner_enabled: true
