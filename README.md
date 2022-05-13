@@ -13,7 +13,6 @@ Red Hat technologies that are based on Red Hat Enterprise Linux 7, such as:
 - Red Hat Enterprise Linux Workstation and Desktop  
 - Red Hat Enterprise Linux for HPC  
 - Red Hat Storage  
-- Red Hat Containers with a Red Hat Enterprise Linux 7 image
 
 The tasks that are used in this role are generated using OpenSCAP.
 See the OpenSCAP project for more details on Ansible playbook generation at [https://github.com/OpenSCAP/openscap](https://github.com/OpenSCAP/openscap)
