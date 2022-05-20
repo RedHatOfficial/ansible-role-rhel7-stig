@@ -396,6 +396,7 @@
   tags:
   - CCE-27096-7
   - CJIS-5.10.1.3
+  - DISA-STIG-RHEL-07-020029
   - NIST-800-53-CM-6(a)
   - PCI-DSS-Req-11.5
   - enable_strategy
@@ -2651,6 +2652,54 @@
   - restrict_strategy | bool
   - sudo_remove_nopasswd | bool
 
+- name: Find out if /etc/sudoers.d/* files contain 'Defaults timestamp_timeout' to be deduplicated
+  find:
+    path: /etc/sudoers.d
+    patterns: '*'
+    contains: ^[\s]*Defaults\s.*\btimestamp_timeout=.*
+  register: sudoers_d_defaults_timestamp_timeout
+  tags:
+  - CCE-85963-7
+  - DISA-STIG-RHEL-07-010343
+  - NIST-800-53-IA-11
+  - low_complexity
+  - low_disruption
+  - medium_severity
+  - no_reboot_needed
+  - restrict_strategy
+  - sudo_require_reauthentication
+  when:
+  - low_complexity | bool
+  - low_disruption | bool
+  - medium_severity | bool
+  - no_reboot_needed | bool
+  - restrict_strategy | bool
+  - sudo_require_reauthentication | bool
+
+- name: Remove found occurrences of 'Defaults timestamp_timeout' from /etc/sudoers.d/* files
+  lineinfile:
+    path: '{{ item.path }}'
+    regexp: ^[\s]*Defaults\s.*\btimestamp_timeout=.*
+    state: absent
+  with_items: '{{ sudoers_d_defaults_timestamp_timeout.files }}'
+  tags:
+  - CCE-85963-7
+  - DISA-STIG-RHEL-07-010343
+  - NIST-800-53-IA-11
+  - low_complexity
+  - low_disruption
+  - medium_severity
+  - no_reboot_needed
+  - restrict_strategy
+  - sudo_require_reauthentication
+  when:
+  - low_complexity | bool
+  - low_disruption | bool
+  - medium_severity | bool
+  - no_reboot_needed | bool
+  - restrict_strategy | bool
+  - sudo_require_reauthentication | bool
+
 - name: Ensure timestamp_timeout is enabled with the appropriate value in /etc/sudoers
   lineinfile:
     path: /etc/sudoers
@@ -2701,10 +2750,358 @@
   - restrict_strategy
   - sudo_require_reauthentication
 
-- name: Ensure that Defaults !targetpw is defined in sudoers
+- name: Check for duplicate values
   lineinfile:
     path: /etc/sudoers
-    create: true
+    create: false
+    regexp: ^#includedir.*$
+    state: absent
+  check_mode: true
+  changed_when: false
+  register: dupes
+  tags:
+  - CCE-86277-1
+  - DISA-STIG-RHEL-07-010339
+  - configure_strategy
+  - low_complexity
+  - low_disruption
+  - medium_severity
+  - no_reboot_needed
+  - sudoers_default_includedir
+  when:
+  - configure_strategy | bool
+  - low_complexity | bool
+  - low_disruption | bool
+  - medium_severity | bool
+  - no_reboot_needed | bool
+  - sudoers_default_includedir | bool
+
+- name: Deduplicate values from /etc/sudoers
+  lineinfile:
+    path: /etc/sudoers
+    create: false
+    regexp: ^#includedir.*$
+    state: absent
+  when:
+  - configure_strategy | bool
+  - low_complexity | bool
+  - low_disruption | bool
+  - medium_severity | bool
+  - no_reboot_needed | bool
+  - sudoers_default_includedir | bool
+  - dupes.found is defined and dupes.found > 1
+  tags:
+  - CCE-86277-1
+  - DISA-STIG-RHEL-07-010339
+  - configure_strategy
+  - low_complexity
+  - low_disruption
+  - medium_severity
+  - no_reboot_needed
+  - sudoers_default_includedir
+
+- name: Insert correct line into /etc/sudoers
+  lineinfile:
+    path: /etc/sudoers
+    create: false
+    regexp: ^#includedir.*$
+    line: '#includedir /etc/sudoers.d'
+    state: present
+  tags:
+  - CCE-86277-1
+  - DISA-STIG-RHEL-07-010339
+  - configure_strategy
+  - low_complexity
+  - low_disruption
+  - medium_severity
+  - no_reboot_needed
+  - sudoers_default_includedir
+  when:
+  - configure_strategy | bool
+  - low_complexity | bool
+  - low_disruption | bool
+  - medium_severity | bool
+  - no_reboot_needed | bool
+  - sudoers_default_includedir | bool
+
+- name: Ensure sudoers doesn't include other non-default file
+  lineinfile:
+    path: /etc/sudoers
+    create: false
+    regexp: ^#include[\s]+.*$
+    state: absent
+  tags:
+  - CCE-86277-1
+  - DISA-STIG-RHEL-07-010339
+  - configure_strategy
+  - low_complexity
+  - low_disruption
+  - medium_severity
+  - no_reboot_needed
+  - sudoers_default_includedir
+  when:
+  - configure_strategy | bool
+  - low_complexity | bool
+  - low_disruption | bool
+  - medium_severity | bool
+  - no_reboot_needed | bool
+  - sudoers_default_includedir | bool
+
+- name: Find out if /etc/sudoers.d/* files contain file or directory includes
+  find:
+    path: /etc/sudoers.d
+    patterns: '*'
+    contains: ^#include(dir)?\s.*$
+  register: sudoers_d_includes
+  tags:
+  - CCE-86277-1
+  - DISA-STIG-RHEL-07-010339
+  - configure_strategy
+  - low_complexity
+  - low_disruption
+  - medium_severity
+  - no_reboot_needed
+  - sudoers_default_includedir
+  when:
+  - configure_strategy | bool
+  - low_complexity | bool
+  - low_disruption | bool
+  - medium_severity | bool
+  - no_reboot_needed | bool
+  - sudoers_default_includedir | bool
+
+- name: Remove found occurrences of file and directory inclues from /etc/sudoers.d/* files
+  lineinfile:
+    path: '{{ item.path }}'
+    regexp: ^#include(dir)?\s.*$
+    state: absent
+  with_items: '{{ sudoers_d_includes.files }}'
+  tags:
+  - CCE-86277-1
+  - DISA-STIG-RHEL-07-010339
+  - configure_strategy
+  - low_complexity
+  - low_disruption
+  - medium_severity
+  - no_reboot_needed
+  - sudoers_default_includedir
+  when:
+  - configure_strategy | bool
+  - low_complexity | bool
+  - low_disruption | bool
+  - medium_severity | bool
+  - no_reboot_needed | bool
+  - sudoers_default_includedir | bool
+
+- name: Find out if /etc/sudoers.d/* files contain Defaults !targetpw to be deduplicated
+  find:
+    path: /etc/sudoers.d
+    patterns: '*'
+    contains: ^Defaults !targetpw$
+  register: sudoers_d_defaults
+  tags:
+  - CCE-83421-8
+  - DISA-STIG-RHEL-07-010342
+  - NIST-800-53-CM-6(b)
+  - NIST-800-53-CM-6.1(iv)
+  - low_complexity
+  - low_disruption
+  - medium_severity
+  - no_reboot_needed
+  - restrict_strategy
+  - sudoers_validate_passwd
+  when:
+  - low_complexity | bool
+  - low_disruption | bool
+  - medium_severity | bool
+  - no_reboot_needed | bool
+  - restrict_strategy | bool
+  - sudoers_validate_passwd | bool
+
+- name: Remove found occurrences of Defaults !targetpw from /etc/sudoers.d/* files
+  lineinfile:
+    path: '{{ item.path }}'
+    regexp: ^Defaults !targetpw$
+    state: absent
+  with_items: '{{ sudoers_d_defaults.files }}'
+  tags:
+  - CCE-83421-8
+  - DISA-STIG-RHEL-07-010342
+  - NIST-800-53-CM-6(b)
+  - NIST-800-53-CM-6.1(iv)
+  - low_complexity
+  - low_disruption
+  - medium_severity
+  - no_reboot_needed
+  - restrict_strategy
+  - sudoers_validate_passwd
+  when:
+  - low_complexity | bool
+  - low_disruption | bool
+  - medium_severity | bool
+  - no_reboot_needed | bool
+  - restrict_strategy | bool
+  - sudoers_validate_passwd | bool
+
+- name: Find out if /etc/sudoers.d/* files contain Defaults !rootpw to be deduplicated
+  find:
+    path: /etc/sudoers.d
+    patterns: '*'
+    contains: ^Defaults !rootpw$
+  register: sudoers_d_defaults
+  tags:
+  - CCE-83421-8
+  - DISA-STIG-RHEL-07-010342
+  - NIST-800-53-CM-6(b)
+  - NIST-800-53-CM-6.1(iv)
+  - low_complexity
+  - low_disruption
+  - medium_severity
+  - no_reboot_needed
+  - restrict_strategy
+  - sudoers_validate_passwd
+  when:
+  - low_complexity | bool
+  - low_disruption | bool
+  - medium_severity | bool
+  - no_reboot_needed | bool
+  - restrict_strategy | bool
+  - sudoers_validate_passwd | bool
+
+- name: Remove found occurrences of Defaults !rootpw from /etc/sudoers.d/* files
+  lineinfile:
+    path: '{{ item.path }}'
+    regexp: ^Defaults !rootpw$
+    state: absent
+  with_items: '{{ sudoers_d_defaults.files }}'
+  tags:
+  - CCE-83421-8
+  - DISA-STIG-RHEL-07-010342
+  - NIST-800-53-CM-6(b)
+  - NIST-800-53-CM-6.1(iv)
+  - low_complexity
+  - low_disruption
+  - medium_severity
+  - no_reboot_needed
+  - restrict_strategy
+  - sudoers_validate_passwd
+  when:
+  - low_complexity | bool
+  - low_disruption | bool
+  - medium_severity | bool
+  - no_reboot_needed | bool
+  - restrict_strategy | bool
+  - sudoers_validate_passwd | bool
+
+- name: Find out if /etc/sudoers.d/* files contain Defaults !runaspw to be deduplicated
+  find:
+    path: /etc/sudoers.d
+    patterns: '*'
+    contains: ^Defaults !runaspw$
+  register: sudoers_d_defaults
+  tags:
+  - CCE-83421-8
+  - DISA-STIG-RHEL-07-010342
+  - NIST-800-53-CM-6(b)
+  - NIST-800-53-CM-6.1(iv)
+  - low_complexity
+  - low_disruption
+  - medium_severity
+  - no_reboot_needed
+  - restrict_strategy
+  - sudoers_validate_passwd
+  when:
+  - low_complexity | bool
+  - low_disruption | bool
+  - medium_severity | bool
+  - no_reboot_needed | bool
+  - restrict_strategy | bool
+  - sudoers_validate_passwd | bool
+
+- name: Remove found occurrences of Defaults !runaspw from /etc/sudoers.d/* files
+  lineinfile:
+    path: '{{ item.path }}'
+    regexp: ^Defaults !runaspw$
+    state: absent
+  with_items: '{{ sudoers_d_defaults.files }}'
+  tags:
+  - CCE-83421-8
+  - DISA-STIG-RHEL-07-010342
+  - NIST-800-53-CM-6(b)
+  - NIST-800-53-CM-6.1(iv)
+  - low_complexity
+  - low_disruption
+  - medium_severity
+  - no_reboot_needed
+  - restrict_strategy
+  - sudoers_validate_passwd
+  when:
+  - low_complexity | bool
+  - low_disruption | bool
+  - medium_severity | bool
+  - no_reboot_needed | bool
+  - restrict_strategy | bool
+  - sudoers_validate_passwd | bool
+
+- name: Check for duplicate values
+  lineinfile:
+    path: /etc/sudoers
+    create: false
+    regexp: ^Defaults !targetpw$
+    state: absent
+  check_mode: true
+  changed_when: false
+  register: dupes
+  tags:
+  - CCE-83421-8
+  - DISA-STIG-RHEL-07-010342
+  - NIST-800-53-CM-6(b)
+  - NIST-800-53-CM-6.1(iv)
+  - low_complexity
+  - low_disruption
+  - medium_severity
+  - no_reboot_needed
+  - restrict_strategy
+  - sudoers_validate_passwd
+  when:
+  - low_complexity | bool
+  - low_disruption | bool
+  - medium_severity | bool
+  - no_reboot_needed | bool
+  - restrict_strategy | bool
+  - sudoers_validate_passwd | bool
+
+- name: Deduplicate values from /etc/sudoers
+  lineinfile:
+    path: /etc/sudoers
+    create: false
+    regexp: ^Defaults !targetpw$
+    state: absent
+  when:
+  - low_complexity | bool
+  - low_disruption | bool
+  - medium_severity | bool
+  - no_reboot_needed | bool
+  - restrict_strategy | bool
+  - sudoers_validate_passwd | bool
+  - dupes.found is defined and dupes.found > 1
+  tags:
+  - CCE-83421-8
+  - DISA-STIG-RHEL-07-010342
+  - NIST-800-53-CM-6(b)
+  - NIST-800-53-CM-6.1(iv)
+  - low_complexity
+  - low_disruption
+  - medium_severity
+  - no_reboot_needed
+  - restrict_strategy
+  - sudoers_validate_passwd
+
+- name: Insert correct line into /etc/sudoers
+  lineinfile:
+    path: /etc/sudoers
+    create: false
+    regexp: ^Defaults !targetpw$
     line: Defaults !targetpw
     state: present
   tags:
@@ -2726,10 +3123,65 @@
   - restrict_strategy | bool
   - sudoers_validate_passwd | bool
 
-- name: Ensure that Defaults !rootpw is defined in sudoers
+- name: Check for duplicate values
   lineinfile:
     path: /etc/sudoers
-    create: true
+    create: false
+    regexp: ^Defaults !rootpw$
+    state: absent
+  check_mode: true
+  changed_when: false
+  register: dupes
+  tags:
+  - CCE-83421-8
+  - DISA-STIG-RHEL-07-010342
+  - NIST-800-53-CM-6(b)
+  - NIST-800-53-CM-6.1(iv)
+  - low_complexity
+  - low_disruption
+  - medium_severity
+  - no_reboot_needed
+  - restrict_strategy
+  - sudoers_validate_passwd
+  when:
+  - low_complexity | bool
+  - low_disruption | bool
+  - medium_severity | bool
+  - no_reboot_needed | bool
+  - restrict_strategy | bool
+  - sudoers_validate_passwd | bool
+
+- name: Deduplicate values from /etc/sudoers
+  lineinfile:
+    path: /etc/sudoers
+    create: false
+    regexp: ^Defaults !rootpw$
+    state: absent
+  when:
+  - low_complexity | bool
+  - low_disruption | bool
+  - medium_severity | bool
+  - no_reboot_needed | bool
+  - restrict_strategy | bool
+  - sudoers_validate_passwd | bool
+  - dupes.found is defined and dupes.found > 1
+  tags:
+  - CCE-83421-8
+  - DISA-STIG-RHEL-07-010342
+  - NIST-800-53-CM-6(b)
+  - NIST-800-53-CM-6.1(iv)
+  - low_complexity
+  - low_disruption
+  - medium_severity
+  - no_reboot_needed
+  - restrict_strategy
+  - sudoers_validate_passwd
+
+- name: Insert correct line into /etc/sudoers
+  lineinfile:
+    path: /etc/sudoers
+    create: false
+    regexp: ^Defaults !rootpw$
     line: Defaults !rootpw
     state: present
   tags:
@@ -2751,10 +3203,65 @@
   - restrict_strategy | bool
   - sudoers_validate_passwd | bool
 
-- name: Ensure that Defaults !runaspw is defined in sudoers
+- name: Check for duplicate values
   lineinfile:
     path: /etc/sudoers
-    create: true
+    create: false
+    regexp: ^Defaults !runaspw$
+    state: absent
+  check_mode: true
+  changed_when: false
+  register: dupes
+  tags:
+  - CCE-83421-8
+  - DISA-STIG-RHEL-07-010342
+  - NIST-800-53-CM-6(b)
+  - NIST-800-53-CM-6.1(iv)
+  - low_complexity
+  - low_disruption
+  - medium_severity
+  - no_reboot_needed
+  - restrict_strategy
+  - sudoers_validate_passwd
+  when:
+  - low_complexity | bool
+  - low_disruption | bool
+  - medium_severity | bool
+  - no_reboot_needed | bool
+  - restrict_strategy | bool
+  - sudoers_validate_passwd | bool
+
+- name: Deduplicate values from /etc/sudoers
+  lineinfile:
+    path: /etc/sudoers
+    create: false
+    regexp: ^Defaults !runaspw$
+    state: absent
+  when:
+  - low_complexity | bool
+  - low_disruption | bool
+  - medium_severity | bool
+  - no_reboot_needed | bool
+  - restrict_strategy | bool
+  - sudoers_validate_passwd | bool
+  - dupes.found is defined and dupes.found > 1
+  tags:
+  - CCE-83421-8
+  - DISA-STIG-RHEL-07-010342
+  - NIST-800-53-CM-6(b)
+  - NIST-800-53-CM-6.1(iv)
+  - low_complexity
+  - low_disruption
+  - medium_severity
+  - no_reboot_needed
+  - restrict_strategy
+  - sudoers_validate_passwd
+
+- name: Insert correct line into /etc/sudoers
+  lineinfile:
+    path: /etc/sudoers
+    create: false
+    regexp: ^Defaults !runaspw$
     line: Defaults !runaspw
     state: present
   tags:
@@ -2974,16 +3481,16 @@
   - NIST-800-53-SI-2(c)
   - PCI-DSS-Req-6.2
   - high_disruption
-  - high_severity
   - low_complexity
+  - medium_severity
   - patch_strategy
   - reboot_required
   - security_patches_up_to_date
   - skip_ansible_lint
   when:
   - high_disruption | bool
-  - high_severity | bool
   - low_complexity | bool
+  - medium_severity | bool
   - patch_strategy | bool
   - reboot_required | bool
   - security_patches_up_to_date | bool
@@ -4162,61 +4669,7 @@
   - no_reboot_needed | bool
   - restrict_strategy | bool
 
-- name: Check if system relies on authconfig
-  ansible.builtin.stat:
-    path: /usr/sbin/authconfig
-  register: result_authconfig_check
-  when:
-  - accounts_passwords_pam_faillock_deny | bool
-  - low_complexity | bool
-  - low_disruption | bool
-  - medium_severity | bool
-  - no_reboot_needed | bool
-  - restrict_strategy | bool
-  - '"pam" in ansible_facts.packages'
-  tags:
-  - CCE-27350-8
-  - CJIS-5.5.3
-  - DISA-STIG-RHEL-07-010320
-  - NIST-800-171-3.1.8
-  - NIST-800-53-AC-7(a)
-  - NIST-800-53-CM-6(a)
-  - PCI-DSS-Req-8.1.6
-  - accounts_passwords_pam_faillock_deny
-  - low_complexity
-  - low_disruption
-  - medium_severity
-  - no_reboot_needed
-  - restrict_strategy
-
-- name: Ensure pam_faillock.so is properly enabled using authconfig tool
-  ansible.builtin.command:
-    cmd: authconfig --enablefaillock --update
-  when:
-  - accounts_passwords_pam_faillock_deny | bool
-  - low_complexity | bool
-  - low_disruption | bool
-  - medium_severity | bool
-  - no_reboot_needed | bool
-  - restrict_strategy | bool
-  - '"pam" in ansible_facts.packages'
-  - result_authconfig_check.stat.exists
-  tags:
-  - CCE-27350-8
-  - CJIS-5.5.3
-  - DISA-STIG-RHEL-07-010320
-  - NIST-800-171-3.1.8
-  - NIST-800-53-AC-7(a)
-  - NIST-800-53-CM-6(a)
-  - PCI-DSS-Req-8.1.6
-  - accounts_passwords_pam_faillock_deny
-  - low_complexity
-  - low_disruption
-  - medium_severity
-  - no_reboot_needed
-  - restrict_strategy
-
-- name: Check if system relies on authselect
+- name: Lock Accounts After Failed Password Attempts - Check if system relies on authselect tool
   ansible.builtin.stat:
     path: /usr/bin/authselect
   register: result_authselect_present
@@ -4228,7 +4681,6 @@
   - no_reboot_needed | bool
   - restrict_strategy | bool
   - '"pam" in ansible_facts.packages'
-  - not result_authconfig_check.stat.exists
   tags:
   - CCE-27350-8
   - CJIS-5.5.3
@@ -4244,48 +4696,40 @@
   - no_reboot_needed
   - restrict_strategy
 
-- name: Check integrity of authselect current profile
-  ansible.builtin.command:
-    cmd: authselect check
-  register: result_authselect_check_cmd
-  changed_when: false
-  ignore_errors: true
-  when:
-  - accounts_passwords_pam_faillock_deny | bool
-  - low_complexity | bool
-  - low_disruption | bool
-  - medium_severity | bool
-  - no_reboot_needed | bool
-  - restrict_strategy | bool
-  - '"pam" in ansible_facts.packages'
-  - result_authselect_present is not skipped
-  - result_authselect_present.stat.exists
-  tags:
-  - CCE-27350-8
-  - CJIS-5.5.3
-  - DISA-STIG-RHEL-07-010320
-  - NIST-800-171-3.1.8
-  - NIST-800-53-AC-7(a)
-  - NIST-800-53-CM-6(a)
-  - PCI-DSS-Req-8.1.6
-  - accounts_passwords_pam_faillock_deny
-  - low_complexity
-  - low_disruption
-  - medium_severity
-  - no_reboot_needed
-  - restrict_strategy
-
-- name: Informative message based on the authselect integrity check result
-  ansible.builtin.assert:
-    that:
+- name: Lock Accounts After Failed Password Attempts - Remediation where authselect tool is present
+  block:
+  - name: Lock Accounts After Failed Password Attempts - Check integrity of authselect current profile
+    ansible.builtin.command:
+      cmd: authselect check
+    register: result_authselect_check_cmd
+    changed_when: false
+    ignore_errors: true
+  - name: Lock Accounts After Failed Password Attempts - Informative message based on the authselect integrity check result
+    ansible.builtin.assert:
+      that:
+      - result_authselect_check_cmd is success
+      fail_msg:
+      - authselect integrity check failed. Remediation aborted!
+      - This remediation could not be applied because an authselect profile was not selected or the selected profile is not
+        intact.
+      - It is not recommended to manually edit the PAM files when authselect tool is available.
+      - In cases where the default authselect profile does not cover a specific demand, a custom authselect profile is recommended.
+      success_msg:
+      - authselect integrity check passed
+  - name: Lock Accounts After Failed Password Attempts - Get authselect current features
+    ansible.builtin.shell:
+      cmd: authselect current | tail -n+3 | awk '{ print $2 }'
+    register: result_authselect_features
+    changed_when: false
+    when:
     - result_authselect_check_cmd is success
-    fail_msg:
-    - authselect integrity check failed. Remediation aborted!
-    - This remediation could not be applied because the authselect profile is not intact.
-    - It is not recommended to manually edit the PAM files when authselect is available
-    - In cases where the default authselect profile does not cover a specific demand, a custom authselect profile is recommended.
-    success_msg:
-    - authselect integrity check passed
+  - name: Lock Accounts After Failed Password Attempts - Ensure with-faillock feature is enabled using authselect tool
+    ansible.builtin.command:
+      cmd: authselect enable-feature with-faillock
+    register: result_authselect_cmd
+    when:
+    - result_authselect_check_cmd is success
+    - result_authselect_features.stdout is not search("with-faillock")
   when:
   - accounts_passwords_pam_faillock_deny | bool
   - low_complexity | bool
@@ -4294,38 +4738,7 @@
   - no_reboot_needed | bool
   - restrict_strategy | bool
   - '"pam" in ansible_facts.packages'
-  - result_authselect_present is not skipped
-  tags:
-  - CCE-27350-8
-  - CJIS-5.5.3
-  - DISA-STIG-RHEL-07-010320
-  - NIST-800-171-3.1.8
-  - NIST-800-53-AC-7(a)
-  - NIST-800-53-CM-6(a)
-  - PCI-DSS-Req-8.1.6
-  - accounts_passwords_pam_faillock_deny
-  - low_complexity
-  - low_disruption
-  - medium_severity
-  - no_reboot_needed
-  - restrict_strategy
-
-- name: Get authselect current features
-  ansible.builtin.shell:
-    cmd: authselect current | tail -n+3 | awk '{ print $2 }'
-  register: result_authselect_features
-  changed_when: false
-  when:
-  - accounts_passwords_pam_faillock_deny | bool
-  - low_complexity | bool
-  - low_disruption | bool
-  - medium_severity | bool
-  - no_reboot_needed | bool
-  - restrict_strategy | bool
-  - '"pam" in ansible_facts.packages'
-  - result_authselect_present is not skipped
   - result_authselect_present.stat.exists
-  - result_authselect_check_cmd is success
   tags:
   - CCE-27350-8
   - CJIS-5.5.3
@@ -4341,10 +4754,49 @@
   - no_reboot_needed
   - restrict_strategy
 
-- name: Ensure with-faillock feature is enabled via authselect tool
-  ansible.builtin.command:
-    cmd: authselect enable-feature with-faillock
-  register: result_authselect_cmd
+- name: Lock Accounts After Failed Password Attempts - Remediation where authselect tool is not present
+  block:
+  - name: Lock Accounts After Failed Password Attempts - Check if pam_faillock.so is already enabled
+    ansible.builtin.lineinfile:
+      path: /etc/pam.d/system-auth
+      regexp: .*auth.*pam_faillock.so (preauth|authfail)
+      state: absent
+    check_mode: true
+    changed_when: false
+    register: result_pam_faillock_is_enabled
+  - name: Lock Accounts After Failed Password Attempts - Enable pam_faillock.so preauth editing PAM files
+    ansible.builtin.lineinfile:
+      path: '{{ item }}'
+      line: auth        required      pam_faillock.so preauth
+      insertbefore: ^auth.*sufficient.*pam_unix.so.*
+      state: present
+    loop:
+    - /etc/pam.d/system-auth
+    - /etc/pam.d/password-auth
+    when:
+    - result_pam_faillock_is_enabled.found == 0
+  - name: Lock Accounts After Failed Password Attempts - Enable pam_faillock.so authfail editing PAM files
+    ansible.builtin.lineinfile:
+      path: '{{ item }}'
+      line: auth        required      pam_faillock.so authfail
+      insertafter: ^auth.*sufficient.*pam_unix.so.*
+      state: present
+    loop:
+    - /etc/pam.d/system-auth
+    - /etc/pam.d/password-auth
+    when:
+    - result_pam_faillock_is_enabled.found == 0
+  - name: Lock Accounts After Failed Password Attempts - Enable pam_faillock.so account section editing PAM files
+    ansible.builtin.lineinfile:
+      path: '{{ item }}'
+      line: account     required      pam_faillock.so
+      insertbefore: ^account.*required.*pam_unix.so.*
+      state: present
+    loop:
+    - /etc/pam.d/system-auth
+    - /etc/pam.d/password-auth
+    when:
+    - result_pam_faillock_is_enabled.found == 0
   when:
   - accounts_passwords_pam_faillock_deny | bool
   - low_complexity | bool
@@ -4353,10 +4805,7 @@
   - no_reboot_needed | bool
   - restrict_strategy | bool
   - '"pam" in ansible_facts.packages'
-  - result_authselect_present is not skipped
-  - result_authselect_present.stat.exists
-  - result_authselect_check_cmd is success
-  - result_authselect_features.stdout is not search("with-faillock")
+  - not result_authselect_present.stat.exists
   tags:
   - CCE-27350-8
   - CJIS-5.5.3
@@ -4372,7 +4821,7 @@
   - no_reboot_needed
   - restrict_strategy
 
-- name: Check the presence of /etc/security/faillock.conf file
+- name: Lock Accounts After Failed Password Attempts - Check the presence of /etc/security/faillock.conf file
   ansible.builtin.stat:
     path: /etc/security/faillock.conf
   register: result_faillock_conf_check
@@ -4399,7 +4848,7 @@
   - no_reboot_needed
   - restrict_strategy
 
-- name: Ensure the pam_faillock.so deny parameter in /etc/security/faillock.conf
+- name: Lock Accounts After Failed Password Attempts - Ensure the pam_faillock.so deny parameter in /etc/security/faillock.conf
   ansible.builtin.lineinfile:
     path: /etc/security/faillock.conf
     regexp: ^\s*deny\s*=
@@ -4429,50 +4878,69 @@
   - no_reboot_needed
   - restrict_strategy
 
-- name: Ensure the pam_faillock.so preauth deny parameter in auth section
-  ansible.builtin.lineinfile:
-    path: '{{ item }}'
-    backrefs: true
-    regexp: (^\s*auth\s+)([\w\[].*\b)(\s+pam_faillock.so preauth.*)(deny)=[0-5]+(.*)
-    line: \1required\3\4={{ var_accounts_passwords_pam_faillock_deny }}\5
-    state: present
-  loop:
-  - /etc/pam.d/system-auth
-  - /etc/pam.d/password-auth
-  when:
-  - accounts_passwords_pam_faillock_deny | bool
-  - low_complexity | bool
-  - low_disruption | bool
-  - medium_severity | bool
-  - no_reboot_needed | bool
-  - restrict_strategy | bool
-  - '"pam" in ansible_facts.packages'
-  - not result_faillock_conf_check.stat.exists
-  tags:
-  - CCE-27350-8
-  - CJIS-5.5.3
-  - DISA-STIG-RHEL-07-010320
-  - NIST-800-171-3.1.8
-  - NIST-800-53-AC-7(a)
-  - NIST-800-53-CM-6(a)
-  - PCI-DSS-Req-8.1.6
-  - accounts_passwords_pam_faillock_deny
-  - low_complexity
-  - low_disruption
-  - medium_severity
-  - no_reboot_needed
-  - restrict_strategy
-
-- name: Ensure the pam_faillock.so authfail deny parameter in auth section
-  ansible.builtin.lineinfile:
-    path: '{{ item }}'
-    backrefs: true
-    regexp: (^\s*auth\s+)([\w\[].*\b)(\s+pam_faillock.so authfail.*)(deny)=[0-5]+(.*)
-    line: \1required\3\4={{ var_accounts_passwords_pam_faillock_deny }}\5
-    state: present
-  loop:
-  - /etc/pam.d/system-auth
-  - /etc/pam.d/password-auth
+- name: Lock Accounts After Failed Password Attempts - Ensure the pam_faillock.so deny parameter in PAM files
+  block:
+  - name: Lock Accounts After Failed Password Attempts - Check if pam_faillock.so deny parameter is already enabled in pam
+      files
+    ansible.builtin.lineinfile:
+      path: /etc/pam.d/system-auth
+      regexp: .*auth.*pam_faillock.so (preauth|authfail).*deny
+      state: absent
+    check_mode: true
+    changed_when: false
+    register: result_pam_faillock_deny_parameter_is_present
+  - name: Lock Accounts After Failed Password Attempts - Ensure the inclusion of pam_faillock.so preauth deny parameter in
+      auth section
+    ansible.builtin.lineinfile:
+      path: '{{ item }}'
+      backrefs: true
+      regexp: (^\s*auth\s+)([\w\[].*\b)(\s+pam_faillock.so preauth.*)
+      line: \1required\3 deny={{ var_accounts_passwords_pam_faillock_deny }}
+      state: present
+    loop:
+    - /etc/pam.d/system-auth
+    - /etc/pam.d/password-auth
+    when:
+    - result_pam_faillock_deny_parameter_is_present.found == 0
+  - name: Lock Accounts After Failed Password Attempts - Ensure the inclusion of pam_faillock.so authfail deny parameter in
+      auth section
+    ansible.builtin.lineinfile:
+      path: '{{ item }}'
+      backrefs: true
+      regexp: (^\s*auth\s+)([\w\[].*\b)(\s+pam_faillock.so authfail.*)
+      line: \1required\3 deny={{ var_accounts_passwords_pam_faillock_deny }}
+      state: present
+    loop:
+    - /etc/pam.d/system-auth
+    - /etc/pam.d/password-auth
+    when:
+    - result_pam_faillock_deny_parameter_is_present.found == 0
+  - name: Lock Accounts After Failed Password Attempts - Ensure the desired value for pam_faillock.so preauth deny parameter
+      in auth section
+    ansible.builtin.lineinfile:
+      path: '{{ item }}'
+      backrefs: true
+      regexp: (^\s*auth\s+)([\w\[].*\b)(\s+pam_faillock.so preauth.*)(deny)=[0-9]+(.*)
+      line: \1required\3\4={{ var_accounts_passwords_pam_faillock_deny }}\5
+      state: present
+    loop:
+    - /etc/pam.d/system-auth
+    - /etc/pam.d/password-auth
+    when:
+    - result_pam_faillock_deny_parameter_is_present.found > 0
+  - name: Lock Accounts After Failed Password Attempts - Ensure the desired value for pam_faillock.so authfail deny parameter
+      in auth section
+    ansible.builtin.lineinfile:
+      path: '{{ item }}'
+      backrefs: true
+      regexp: (^\s*auth\s+)([\w\[].*\b)(\s+pam_faillock.so authfail.*)(deny)=[0-9]+(.*)
+      line: \1required\3\4={{ var_accounts_passwords_pam_faillock_deny }}\5
+      state: present
+    loop:
+    - /etc/pam.d/system-auth
+    - /etc/pam.d/password-auth
+    when:
+    - result_pam_faillock_deny_parameter_is_present.found > 0
   when:
   - accounts_passwords_pam_faillock_deny | bool
   - low_complexity | bool
@@ -4520,57 +4988,7 @@
   - no_reboot_needed | bool
   - restrict_strategy | bool
 
-- name: Check if system relies on authconfig
-  ansible.builtin.stat:
-    path: /usr/sbin/authconfig
-  register: result_authconfig_check
-  when:
-  - accounts_passwords_pam_faillock_deny_root | bool
-  - low_complexity | bool
-  - low_disruption | bool
-  - medium_severity | bool
-  - no_reboot_needed | bool
-  - restrict_strategy | bool
-  - '"pam" in ansible_facts.packages'
-  tags:
-  - CCE-80353-6
-  - DISA-STIG-RHEL-07-010330
-  - NIST-800-53-AC-7(b)
-  - NIST-800-53-CM-6(a)
-  - NIST-800-53-IA-5(c)
-  - accounts_passwords_pam_faillock_deny_root
-  - low_complexity
-  - low_disruption
-  - medium_severity
-  - no_reboot_needed
-  - restrict_strategy
-
-- name: Ensure pam_faillock.so is properly enabled using authconfig tool
-  ansible.builtin.command:
-    cmd: authconfig --enablefaillock --update
-  when:
-  - accounts_passwords_pam_faillock_deny_root | bool
-  - low_complexity | bool
-  - low_disruption | bool
-  - medium_severity | bool
-  - no_reboot_needed | bool
-  - restrict_strategy | bool
-  - '"pam" in ansible_facts.packages'
-  - result_authconfig_check.stat.exists
-  tags:
-  - CCE-80353-6
-  - DISA-STIG-RHEL-07-010330
-  - NIST-800-53-AC-7(b)
-  - NIST-800-53-CM-6(a)
-  - NIST-800-53-IA-5(c)
-  - accounts_passwords_pam_faillock_deny_root
-  - low_complexity
-  - low_disruption
-  - medium_severity
-  - no_reboot_needed
-  - restrict_strategy
-
-- name: Check if system relies on authselect
+- name: Configure the root Account for Failed Password Attempts - Check if system relies on authselect tool
   ansible.builtin.stat:
     path: /usr/bin/authselect
   register: result_authselect_present
@@ -4582,7 +5000,6 @@
   - no_reboot_needed | bool
   - restrict_strategy | bool
   - '"pam" in ansible_facts.packages'
-  - not result_authconfig_check.stat.exists
   tags:
   - CCE-80353-6
   - DISA-STIG-RHEL-07-010330
@@ -4596,46 +5013,42 @@
   - no_reboot_needed
   - restrict_strategy
 
-- name: Check integrity of authselect current profile
-  ansible.builtin.command:
-    cmd: authselect check
-  register: result_authselect_check_cmd
-  changed_when: false
-  ignore_errors: true
-  when:
-  - accounts_passwords_pam_faillock_deny_root | bool
-  - low_complexity | bool
-  - low_disruption | bool
-  - medium_severity | bool
-  - no_reboot_needed | bool
-  - restrict_strategy | bool
-  - '"pam" in ansible_facts.packages'
-  - result_authselect_present is not skipped
-  - result_authselect_present.stat.exists
-  tags:
-  - CCE-80353-6
-  - DISA-STIG-RHEL-07-010330
-  - NIST-800-53-AC-7(b)
-  - NIST-800-53-CM-6(a)
-  - NIST-800-53-IA-5(c)
-  - accounts_passwords_pam_faillock_deny_root
-  - low_complexity
-  - low_disruption
-  - medium_severity
-  - no_reboot_needed
-  - restrict_strategy
-
-- name: Informative message based on the authselect integrity check result
-  ansible.builtin.assert:
-    that:
+- name: Configure the root Account for Failed Password Attempts - Remediation where authselect tool is present
+  block:
+  - name: Configure the root Account for Failed Password Attempts - Check integrity of authselect current profile
+    ansible.builtin.command:
+      cmd: authselect check
+    register: result_authselect_check_cmd
+    changed_when: false
+    ignore_errors: true
+  - name: Configure the root Account for Failed Password Attempts - Informative message based on the authselect integrity
+      check result
+    ansible.builtin.assert:
+      that:
+      - result_authselect_check_cmd is success
+      fail_msg:
+      - authselect integrity check failed. Remediation aborted!
+      - This remediation could not be applied because an authselect profile was not selected or the selected profile is not
+        intact.
+      - It is not recommended to manually edit the PAM files when authselect tool is available.
+      - In cases where the default authselect profile does not cover a specific demand, a custom authselect profile is recommended.
+      success_msg:
+      - authselect integrity check passed
+  - name: Configure the root Account for Failed Password Attempts - Get authselect current features
+    ansible.builtin.shell:
+      cmd: authselect current | tail -n+3 | awk '{ print $2 }'
+    register: result_authselect_features
+    changed_when: false
+    when:
     - result_authselect_check_cmd is success
-    fail_msg:
-    - authselect integrity check failed. Remediation aborted!
-    - This remediation could not be applied because the authselect profile is not intact.
-    - It is not recommended to manually edit the PAM files when authselect is available
-    - In cases where the default authselect profile does not cover a specific demand, a custom authselect profile is recommended.
-    success_msg:
-    - authselect integrity check passed
+  - name: Configure the root Account for Failed Password Attempts - Ensure with-faillock feature is enabled using authselect
+      tool
+    ansible.builtin.command:
+      cmd: authselect enable-feature with-faillock
+    register: result_authselect_cmd
+    when:
+    - result_authselect_check_cmd is success
+    - result_authselect_features.stdout is not search("with-faillock")
   when:
   - accounts_passwords_pam_faillock_deny_root | bool
   - low_complexity | bool
@@ -4644,36 +5057,7 @@
   - no_reboot_needed | bool
   - restrict_strategy | bool
   - '"pam" in ansible_facts.packages'
-  - result_authselect_present is not skipped
-  tags:
-  - CCE-80353-6
-  - DISA-STIG-RHEL-07-010330
-  - NIST-800-53-AC-7(b)
-  - NIST-800-53-CM-6(a)
-  - NIST-800-53-IA-5(c)
-  - accounts_passwords_pam_faillock_deny_root
-  - low_complexity
-  - low_disruption
-  - medium_severity
-  - no_reboot_needed
-  - restrict_strategy
-
-- name: Get authselect current features
-  ansible.builtin.shell:
-    cmd: authselect current | tail -n+3 | awk '{ print $2 }'
-  register: result_authselect_features
-  changed_when: false
-  when:
-  - accounts_passwords_pam_faillock_deny_root | bool
-  - low_complexity | bool
-  - low_disruption | bool
-  - medium_severity | bool
-  - no_reboot_needed | bool
-  - restrict_strategy | bool
-  - '"pam" in ansible_facts.packages'
-  - result_authselect_present is not skipped
   - result_authselect_present.stat.exists
-  - result_authselect_check_cmd is success
   tags:
   - CCE-80353-6
   - DISA-STIG-RHEL-07-010330
@@ -4687,10 +5071,49 @@
   - no_reboot_needed
   - restrict_strategy
 
-- name: Ensure with-faillock feature is enabled via authselect tool
-  ansible.builtin.command:
-    cmd: authselect enable-feature with-faillock
-  register: result_authselect_cmd
+- name: Configure the root Account for Failed Password Attempts - Remediation where authselect tool is not present
+  block:
+  - name: Configure the root Account for Failed Password Attempts - Check if pam_faillock.so is already enabled
+    ansible.builtin.lineinfile:
+      path: /etc/pam.d/system-auth
+      regexp: .*auth.*pam_faillock.so (preauth|authfail)
+      state: absent
+    check_mode: true
+    changed_when: false
+    register: result_pam_faillock_is_enabled
+  - name: Configure the root Account for Failed Password Attempts - Enable pam_faillock.so preauth editing PAM files
+    ansible.builtin.lineinfile:
+      path: '{{ item }}'
+      line: auth        required      pam_faillock.so preauth
+      insertbefore: ^auth.*sufficient.*pam_unix.so.*
+      state: present
+    loop:
+    - /etc/pam.d/system-auth
+    - /etc/pam.d/password-auth
+    when:
+    - result_pam_faillock_is_enabled.found == 0
+  - name: Configure the root Account for Failed Password Attempts - Enable pam_faillock.so authfail editing PAM files
+    ansible.builtin.lineinfile:
+      path: '{{ item }}'
+      line: auth        required      pam_faillock.so authfail
+      insertafter: ^auth.*sufficient.*pam_unix.so.*
+      state: present
+    loop:
+    - /etc/pam.d/system-auth
+    - /etc/pam.d/password-auth
+    when:
+    - result_pam_faillock_is_enabled.found == 0
+  - name: Configure the root Account for Failed Password Attempts - Enable pam_faillock.so account section editing PAM files
+    ansible.builtin.lineinfile:
+      path: '{{ item }}'
+      line: account     required      pam_faillock.so
+      insertbefore: ^account.*required.*pam_unix.so.*
+      state: present
+    loop:
+    - /etc/pam.d/system-auth
+    - /etc/pam.d/password-auth
+    when:
+    - result_pam_faillock_is_enabled.found == 0
   when:
   - accounts_passwords_pam_faillock_deny_root | bool
   - low_complexity | bool
@@ -4699,10 +5122,7 @@
   - no_reboot_needed | bool
   - restrict_strategy | bool
   - '"pam" in ansible_facts.packages'
-  - result_authselect_present is not skipped
-  - result_authselect_present.stat.exists
-  - result_authselect_check_cmd is success
-  - result_authselect_features.stdout is not search("with-faillock")
+  - not result_authselect_present.stat.exists
   tags:
   - CCE-80353-6
   - DISA-STIG-RHEL-07-010330
@@ -4716,7 +5136,7 @@
   - no_reboot_needed
   - restrict_strategy
 
-- name: Check the presence of /etc/security/faillock.conf file
+- name: Configure the root Account for Failed Password Attempts - Check the presence of /etc/security/faillock.conf file
   ansible.builtin.stat:
     path: /etc/security/faillock.conf
   register: result_faillock_conf_check
@@ -4741,7 +5161,7 @@
   - no_reboot_needed
   - restrict_strategy
 
-- name: Ensure the pam_faillock.so even_deny_root parameter in /etc/security/faillock.conf
+- name: Configure the root Account for Failed Password Attempts - Ensure the pam_faillock.so even_deny_root parameter in /etc/security/faillock.conf
   ansible.builtin.lineinfile:
     path: /etc/security/faillock.conf
     regexp: ^\s*even_deny_root
@@ -4769,14 +5189,44 @@
   - no_reboot_needed
   - restrict_strategy
 
-- name: Check if pam_faillock.so even_deny_root parameter is already enabled in pam files
-  ansible.builtin.lineinfile:
-    path: /etc/pam.d/system-auth
-    regexp: .*auth.*pam_faillock.so (preauth|authfail).*even_deny_root
-    state: absent
-  check_mode: true
-  changed_when: false
-  register: result_pam_faillock_even_deny_root
+- name: Configure the root Account for Failed Password Attempts - Ensure the pam_faillock.so even_deny_root parameter in PAM
+    files
+  block:
+  - name: Configure the root Account for Failed Password Attempts - Check if pam_faillock.so even_deny_root parameter is already
+      enabled in pam files
+    ansible.builtin.lineinfile:
+      path: /etc/pam.d/system-auth
+      regexp: .*auth.*pam_faillock.so (preauth|authfail).*even_deny_root
+      state: absent
+    check_mode: true
+    changed_when: false
+    register: result_pam_faillock_even_deny_root_parameter_is_present
+  - name: Configure the root Account for Failed Password Attempts - Ensure the inclusion of pam_faillock.so preauth even_deny_root
+      parameter in auth section
+    ansible.builtin.lineinfile:
+      path: '{{ item }}'
+      backrefs: true
+      regexp: (^\s*auth\s+)([\w\[].*\b)(\s+pam_faillock.so preauth.*)
+      line: \1required\3 even_deny_root
+      state: present
+    loop:
+    - /etc/pam.d/system-auth
+    - /etc/pam.d/password-auth
+    when:
+    - result_pam_faillock_even_deny_root_parameter_is_present.found == 0
+  - name: Configure the root Account for Failed Password Attempts - Ensure the inclusion of pam_faillock.so authfail even_deny_root
+      parameter in auth section
+    ansible.builtin.lineinfile:
+      path: '{{ item }}'
+      backrefs: true
+      regexp: (^\s*auth\s+)([\w\[].*\b)(\s+pam_faillock.so authfail.*)
+      line: \1required\3 even_deny_root
+      state: present
+    loop:
+    - /etc/pam.d/system-auth
+    - /etc/pam.d/password-auth
+    when:
+    - result_pam_faillock_even_deny_root_parameter_is_present.found == 0
   when:
   - accounts_passwords_pam_faillock_deny_root | bool
   - low_complexity | bool
@@ -4786,72 +5236,6 @@
   - restrict_strategy | bool
   - '"pam" in ansible_facts.packages'
   - not result_faillock_conf_check.stat.exists
-  tags:
-  - CCE-80353-6
-  - DISA-STIG-RHEL-07-010330
-  - NIST-800-53-AC-7(b)
-  - NIST-800-53-CM-6(a)
-  - NIST-800-53-IA-5(c)
-  - accounts_passwords_pam_faillock_deny_root
-  - low_complexity
-  - low_disruption
-  - medium_severity
-  - no_reboot_needed
-  - restrict_strategy
-
-- name: Ensure the pam_faillock.so preauth even_deny_root parameter in auth section
-  ansible.builtin.lineinfile:
-    path: '{{ item }}'
-    backrefs: true
-    regexp: (^\s*auth\s+)([\w\[].*\b)(\s+pam_faillock.so preauth.*)
-    line: \1required\3 even_deny_root
-    state: present
-  loop:
-  - /etc/pam.d/system-auth
-  - /etc/pam.d/password-auth
-  when:
-  - accounts_passwords_pam_faillock_deny_root | bool
-  - low_complexity | bool
-  - low_disruption | bool
-  - medium_severity | bool
-  - no_reboot_needed | bool
-  - restrict_strategy | bool
-  - '"pam" in ansible_facts.packages'
-  - not result_faillock_conf_check.stat.exists
-  - result_pam_faillock_even_deny_root.found == 0
-  tags:
-  - CCE-80353-6
-  - DISA-STIG-RHEL-07-010330
-  - NIST-800-53-AC-7(b)
-  - NIST-800-53-CM-6(a)
-  - NIST-800-53-IA-5(c)
-  - accounts_passwords_pam_faillock_deny_root
-  - low_complexity
-  - low_disruption
-  - medium_severity
-  - no_reboot_needed
-  - restrict_strategy
-
-- name: Ensure the pam_faillock.so authfail even_deny_root parameter in auth section
-  ansible.builtin.lineinfile:
-    path: '{{ item }}'
-    backrefs: true
-    regexp: (^\s*auth\s+)([\w\[].*\b)(\s+pam_faillock.so authfail.*)
-    line: \1required\3 even_deny_root
-    state: present
-  loop:
-  - /etc/pam.d/system-auth
-  - /etc/pam.d/password-auth
-  when:
-  - accounts_passwords_pam_faillock_deny_root | bool
-  - low_complexity | bool
-  - low_disruption | bool
-  - medium_severity | bool
-  - no_reboot_needed | bool
-  - restrict_strategy | bool
-  - '"pam" in ansible_facts.packages'
-  - not result_faillock_conf_check.stat.exists
-  - result_pam_faillock_even_deny_root.found == 0
   tags:
   - CCE-80353-6
   - DISA-STIG-RHEL-07-010330
@@ -4887,55 +5271,7 @@
   - no_reboot_needed | bool
   - restrict_strategy | bool
 
-- name: Check if system relies on authconfig
-  ansible.builtin.stat:
-    path: /usr/sbin/authconfig
-  register: result_authconfig_check
-  when:
-  - accounts_passwords_pam_faillock_interval | bool
-  - low_complexity | bool
-  - low_disruption | bool
-  - medium_severity | bool
-  - no_reboot_needed | bool
-  - restrict_strategy | bool
-  - '"pam" in ansible_facts.packages'
-  tags:
-  - CCE-27297-1
-  - DISA-STIG-RHEL-07-010320
-  - NIST-800-53-AC-7(a)
-  - NIST-800-53-CM-6(a)
-  - accounts_passwords_pam_faillock_interval
-  - low_complexity
-  - low_disruption
-  - medium_severity
-  - no_reboot_needed
-  - restrict_strategy
-
-- name: Ensure pam_faillock.so is properly enabled using authconfig tool
-  ansible.builtin.command:
-    cmd: authconfig --enablefaillock --update
-  when:
-  - accounts_passwords_pam_faillock_interval | bool
-  - low_complexity | bool
-  - low_disruption | bool
-  - medium_severity | bool
-  - no_reboot_needed | bool
-  - restrict_strategy | bool
-  - '"pam" in ansible_facts.packages'
-  - result_authconfig_check.stat.exists
-  tags:
-  - CCE-27297-1
-  - DISA-STIG-RHEL-07-010320
-  - NIST-800-53-AC-7(a)
-  - NIST-800-53-CM-6(a)
-  - accounts_passwords_pam_faillock_interval
-  - low_complexity
-  - low_disruption
-  - medium_severity
-  - no_reboot_needed
-  - restrict_strategy
-
-- name: Check if system relies on authselect
+- name: Set Interval For Counting Failed Password Attempts - Check if system relies on authselect tool
   ansible.builtin.stat:
     path: /usr/bin/authselect
   register: result_authselect_present
@@ -4947,7 +5283,6 @@
   - no_reboot_needed | bool
   - restrict_strategy | bool
   - '"pam" in ansible_facts.packages'
-  - not result_authconfig_check.stat.exists
   tags:
   - CCE-27297-1
   - DISA-STIG-RHEL-07-010320
@@ -4960,45 +5295,41 @@
   - no_reboot_needed
   - restrict_strategy
 
-- name: Check integrity of authselect current profile
-  ansible.builtin.command:
-    cmd: authselect check
-  register: result_authselect_check_cmd
-  changed_when: false
-  ignore_errors: true
-  when:
-  - accounts_passwords_pam_faillock_interval | bool
-  - low_complexity | bool
-  - low_disruption | bool
-  - medium_severity | bool
-  - no_reboot_needed | bool
-  - restrict_strategy | bool
-  - '"pam" in ansible_facts.packages'
-  - result_authselect_present is not skipped
-  - result_authselect_present.stat.exists
-  tags:
-  - CCE-27297-1
-  - DISA-STIG-RHEL-07-010320
-  - NIST-800-53-AC-7(a)
-  - NIST-800-53-CM-6(a)
-  - accounts_passwords_pam_faillock_interval
-  - low_complexity
-  - low_disruption
-  - medium_severity
-  - no_reboot_needed
-  - restrict_strategy
-
-- name: Informative message based on the authselect integrity check result
-  ansible.builtin.assert:
-    that:
+- name: Set Interval For Counting Failed Password Attempts - Remediation where authselect tool is present
+  block:
+  - name: Set Interval For Counting Failed Password Attempts - Check integrity of authselect current profile
+    ansible.builtin.command:
+      cmd: authselect check
+    register: result_authselect_check_cmd
+    changed_when: false
+    ignore_errors: true
+  - name: Set Interval For Counting Failed Password Attempts - Informative message based on the authselect integrity check
+      result
+    ansible.builtin.assert:
+      that:
+      - result_authselect_check_cmd is success
+      fail_msg:
+      - authselect integrity check failed. Remediation aborted!
+      - This remediation could not be applied because an authselect profile was not selected or the selected profile is not
+        intact.
+      - It is not recommended to manually edit the PAM files when authselect tool is available.
+      - In cases where the default authselect profile does not cover a specific demand, a custom authselect profile is recommended.
+      success_msg:
+      - authselect integrity check passed
+  - name: Set Interval For Counting Failed Password Attempts - Get authselect current features
+    ansible.builtin.shell:
+      cmd: authselect current | tail -n+3 | awk '{ print $2 }'
+    register: result_authselect_features
+    changed_when: false
+    when:
     - result_authselect_check_cmd is success
-    fail_msg:
-    - authselect integrity check failed. Remediation aborted!
-    - This remediation could not be applied because the authselect profile is not intact.
-    - It is not recommended to manually edit the PAM files when authselect is available
-    - In cases where the default authselect profile does not cover a specific demand, a custom authselect profile is recommended.
-    success_msg:
-    - authselect integrity check passed
+  - name: Set Interval For Counting Failed Password Attempts - Ensure with-faillock feature is enabled using authselect tool
+    ansible.builtin.command:
+      cmd: authselect enable-feature with-faillock
+    register: result_authselect_cmd
+    when:
+    - result_authselect_check_cmd is success
+    - result_authselect_features.stdout is not search("with-faillock")
   when:
   - accounts_passwords_pam_faillock_interval | bool
   - low_complexity | bool
@@ -5007,35 +5338,7 @@
   - no_reboot_needed | bool
   - restrict_strategy | bool
   - '"pam" in ansible_facts.packages'
-  - result_authselect_present is not skipped
-  tags:
-  - CCE-27297-1
-  - DISA-STIG-RHEL-07-010320
-  - NIST-800-53-AC-7(a)
-  - NIST-800-53-CM-6(a)
-  - accounts_passwords_pam_faillock_interval
-  - low_complexity
-  - low_disruption
-  - medium_severity
-  - no_reboot_needed
-  - restrict_strategy
-
-- name: Get authselect current features
-  ansible.builtin.shell:
-    cmd: authselect current | tail -n+3 | awk '{ print $2 }'
-  register: result_authselect_features
-  changed_when: false
-  when:
-  - accounts_passwords_pam_faillock_interval | bool
-  - low_complexity | bool
-  - low_disruption | bool
-  - medium_severity | bool
-  - no_reboot_needed | bool
-  - restrict_strategy | bool
-  - '"pam" in ansible_facts.packages'
-  - result_authselect_present is not skipped
   - result_authselect_present.stat.exists
-  - result_authselect_check_cmd is success
   tags:
   - CCE-27297-1
   - DISA-STIG-RHEL-07-010320
@@ -5048,10 +5351,49 @@
   - no_reboot_needed
   - restrict_strategy
 
-- name: Ensure with-faillock feature is enabled via authselect tool
-  ansible.builtin.command:
-    cmd: authselect enable-feature with-faillock
-  register: result_authselect_cmd
+- name: Set Interval For Counting Failed Password Attempts - Remediation where authselect tool is not present
+  block:
+  - name: Set Interval For Counting Failed Password Attempts - Check if pam_faillock.so is already enabled
+    ansible.builtin.lineinfile:
+      path: /etc/pam.d/system-auth
+      regexp: .*auth.*pam_faillock.so (preauth|authfail)
+      state: absent
+    check_mode: true
+    changed_when: false
+    register: result_pam_faillock_is_enabled
+  - name: Set Interval For Counting Failed Password Attempts - Enable pam_faillock.so preauth editing PAM files
+    ansible.builtin.lineinfile:
+      path: '{{ item }}'
+      line: auth        required      pam_faillock.so preauth
+      insertbefore: ^auth.*sufficient.*pam_unix.so.*
+      state: present
+    loop:
+    - /etc/pam.d/system-auth
+    - /etc/pam.d/password-auth
+    when:
+    - result_pam_faillock_is_enabled.found == 0
+  - name: Set Interval For Counting Failed Password Attempts - Enable pam_faillock.so authfail editing PAM files
+    ansible.builtin.lineinfile:
+      path: '{{ item }}'
+      line: auth        required      pam_faillock.so authfail
+      insertafter: ^auth.*sufficient.*pam_unix.so.*
+      state: present
+    loop:
+    - /etc/pam.d/system-auth
+    - /etc/pam.d/password-auth
+    when:
+    - result_pam_faillock_is_enabled.found == 0
+  - name: Set Interval For Counting Failed Password Attempts - Enable pam_faillock.so account section editing PAM files
+    ansible.builtin.lineinfile:
+      path: '{{ item }}'
+      line: account     required      pam_faillock.so
+      insertbefore: ^account.*required.*pam_unix.so.*
+      state: present
+    loop:
+    - /etc/pam.d/system-auth
+    - /etc/pam.d/password-auth
+    when:
+    - result_pam_faillock_is_enabled.found == 0
   when:
   - accounts_passwords_pam_faillock_interval | bool
   - low_complexity | bool
@@ -5060,10 +5402,7 @@
   - no_reboot_needed | bool
   - restrict_strategy | bool
   - '"pam" in ansible_facts.packages'
-  - result_authselect_present is not skipped
-  - result_authselect_present.stat.exists
-  - result_authselect_check_cmd is success
-  - result_authselect_features.stdout is not search("with-faillock")
+  - not result_authselect_present.stat.exists
   tags:
   - CCE-27297-1
   - DISA-STIG-RHEL-07-010320
@@ -5076,7 +5415,7 @@
   - no_reboot_needed
   - restrict_strategy
 
-- name: Check the presence of /etc/security/faillock.conf file
+- name: Set Interval For Counting Failed Password Attempts - Check the presence of /etc/security/faillock.conf file
   ansible.builtin.stat:
     path: /etc/security/faillock.conf
   register: result_faillock_conf_check
@@ -5100,7 +5439,7 @@
   - no_reboot_needed
   - restrict_strategy
 
-- name: Ensure the pam_faillock.so fail_interval parameter in /etc/security/faillock.conf
+- name: Set Interval For Counting Failed Password Attempts - Ensure the pam_faillock.so fail_interval parameter in /etc/security/faillock.conf
   ansible.builtin.lineinfile:
     path: /etc/security/faillock.conf
     regexp: ^\s*fail_interval\s*=
@@ -5127,14 +5466,69 @@
   - no_reboot_needed
   - restrict_strategy
 
-- name: Check if pam_faillock.so fail_interval parameter is already enabled in pam files
-  ansible.builtin.lineinfile:
-    path: /etc/pam.d/system-auth
-    regexp: .*auth.*pam_faillock.so (preauth|authfail).*fail_interval
-    state: absent
-  check_mode: true
-  changed_when: false
-  register: result_pam_faillock_fail_interval
+- name: Set Interval For Counting Failed Password Attempts - Ensure the pam_faillock.so fail_interval parameter in PAM files
+  block:
+  - name: Set Interval For Counting Failed Password Attempts - Check if pam_faillock.so fail_interval parameter is already
+      enabled in pam files
+    ansible.builtin.lineinfile:
+      path: /etc/pam.d/system-auth
+      regexp: .*auth.*pam_faillock.so (preauth|authfail).*fail_interval
+      state: absent
+    check_mode: true
+    changed_when: false
+    register: result_pam_faillock_fail_interval_parameter_is_present
+  - name: Set Interval For Counting Failed Password Attempts - Ensure the inclusion of pam_faillock.so preauth fail_interval
+      parameter in auth section
+    ansible.builtin.lineinfile:
+      path: '{{ item }}'
+      backrefs: true
+      regexp: (^\s*auth\s+)([\w\[].*\b)(\s+pam_faillock.so preauth.*)
+      line: \1required\3 fail_interval={{ var_accounts_passwords_pam_faillock_fail_interval }}
+      state: present
+    loop:
+    - /etc/pam.d/system-auth
+    - /etc/pam.d/password-auth
+    when:
+    - result_pam_faillock_fail_interval_parameter_is_present.found == 0
+  - name: Set Interval For Counting Failed Password Attempts - Ensure the inclusion of pam_faillock.so authfail fail_interval
+      parameter in auth section
+    ansible.builtin.lineinfile:
+      path: '{{ item }}'
+      backrefs: true
+      regexp: (^\s*auth\s+)([\w\[].*\b)(\s+pam_faillock.so authfail.*)
+      line: \1required\3 fail_interval={{ var_accounts_passwords_pam_faillock_fail_interval }}
+      state: present
+    loop:
+    - /etc/pam.d/system-auth
+    - /etc/pam.d/password-auth
+    when:
+    - result_pam_faillock_fail_interval_parameter_is_present.found == 0
+  - name: Set Interval For Counting Failed Password Attempts - Ensure the desired value for pam_faillock.so preauth fail_interval
+      parameter in auth section
+    ansible.builtin.lineinfile:
+      path: '{{ item }}'
+      backrefs: true
+      regexp: (^\s*auth\s+)([\w\[].*\b)(\s+pam_faillock.so preauth.*)(fail_interval)=[0-9]+(.*)
+      line: \1required\3\4={{ var_accounts_passwords_pam_faillock_fail_interval }}\5
+      state: present
+    loop:
+    - /etc/pam.d/system-auth
+    - /etc/pam.d/password-auth
+    when:
+    - result_pam_faillock_fail_interval_parameter_is_present.found > 0
+  - name: Set Interval For Counting Failed Password Attempts - Ensure the desired value for pam_faillock.so authfail fail_interval
+      parameter in auth section
+    ansible.builtin.lineinfile:
+      path: '{{ item }}'
+      backrefs: true
+      regexp: (^\s*auth\s+)([\w\[].*\b)(\s+pam_faillock.so authfail.*)(fail_interval)=[0-9]+(.*)
+      line: \1required\3\4={{ var_accounts_passwords_pam_faillock_fail_interval }}\5
+      state: present
+    loop:
+    - /etc/pam.d/system-auth
+    - /etc/pam.d/password-auth
+    when:
+    - result_pam_faillock_fail_interval_parameter_is_present.found > 0
   when:
   - accounts_passwords_pam_faillock_interval | bool
   - low_complexity | bool
@@ -5144,134 +5538,6 @@
   - restrict_strategy | bool
   - '"pam" in ansible_facts.packages'
   - not result_faillock_conf_check.stat.exists
-  tags:
-  - CCE-27297-1
-  - DISA-STIG-RHEL-07-010320
-  - NIST-800-53-AC-7(a)
-  - NIST-800-53-CM-6(a)
-  - accounts_passwords_pam_faillock_interval
-  - low_complexity
-  - low_disruption
-  - medium_severity
-  - no_reboot_needed
-  - restrict_strategy
-
-- name: Ensure the inclusion of pam_faillock.so preauth fail_interval parameter in auth section
-  ansible.builtin.lineinfile:
-    path: '{{ item }}'
-    backrefs: true
-    regexp: (^\s*auth\s+)([\w\[].*\b)(\s+pam_faillock.so preauth.*)
-    line: \1required\3 fail_interval={{ var_accounts_passwords_pam_faillock_fail_interval }}
-    state: present
-  loop:
-  - /etc/pam.d/system-auth
-  - /etc/pam.d/password-auth
-  when:
-  - accounts_passwords_pam_faillock_interval | bool
-  - low_complexity | bool
-  - low_disruption | bool
-  - medium_severity | bool
-  - no_reboot_needed | bool
-  - restrict_strategy | bool
-  - '"pam" in ansible_facts.packages'
-  - not result_faillock_conf_check.stat.exists
-  - result_pam_faillock_fail_interval.found == 0
-  tags:
-  - CCE-27297-1
-  - DISA-STIG-RHEL-07-010320
-  - NIST-800-53-AC-7(a)
-  - NIST-800-53-CM-6(a)
-  - accounts_passwords_pam_faillock_interval
-  - low_complexity
-  - low_disruption
-  - medium_severity
-  - no_reboot_needed
-  - restrict_strategy
-
-- name: Ensure the inclusion of pam_faillock.so authfail fail_interval parameter in auth section
-  ansible.builtin.lineinfile:
-    path: '{{ item }}'
-    backrefs: true
-    regexp: (^\s*auth\s+)([\w\[].*\b)(\s+pam_faillock.so authfail.*)
-    line: \1required\3 fail_interval={{ var_accounts_passwords_pam_faillock_fail_interval }}
-    state: present
-  loop:
-  - /etc/pam.d/system-auth
-  - /etc/pam.d/password-auth
-  when:
-  - accounts_passwords_pam_faillock_interval | bool
-  - low_complexity | bool
-  - low_disruption | bool
-  - medium_severity | bool
-  - no_reboot_needed | bool
-  - restrict_strategy | bool
-  - '"pam" in ansible_facts.packages'
-  - not result_faillock_conf_check.stat.exists
-  - result_pam_faillock_fail_interval.found == 0
-  tags:
-  - CCE-27297-1
-  - DISA-STIG-RHEL-07-010320
-  - NIST-800-53-AC-7(a)
-  - NIST-800-53-CM-6(a)
-  - accounts_passwords_pam_faillock_interval
-  - low_complexity
-  - low_disruption
-  - medium_severity
-  - no_reboot_needed
-  - restrict_strategy
-
-- name: Ensure the desired value for pam_faillock.so preauth fail_interval parameter in auth section
-  ansible.builtin.lineinfile:
-    path: '{{ item }}'
-    backrefs: true
-    regexp: (^\s*auth\s+)([\w\[].*\b)(\s+pam_faillock.so preauth.*)(fail_interval)=[0-5]+(.*)
-    line: \1required\3\4={{ var_accounts_passwords_pam_faillock_fail_interval }}\5
-    state: present
-  loop:
-  - /etc/pam.d/system-auth
-  - /etc/pam.d/password-auth
-  when:
-  - accounts_passwords_pam_faillock_interval | bool
-  - low_complexity | bool
-  - low_disruption | bool
-  - medium_severity | bool
-  - no_reboot_needed | bool
-  - restrict_strategy | bool
-  - '"pam" in ansible_facts.packages'
-  - not result_faillock_conf_check.stat.exists
-  - result_pam_faillock_fail_interval.found > 0
-  tags:
-  - CCE-27297-1
-  - DISA-STIG-RHEL-07-010320
-  - NIST-800-53-AC-7(a)
-  - NIST-800-53-CM-6(a)
-  - accounts_passwords_pam_faillock_interval
-  - low_complexity
-  - low_disruption
-  - medium_severity
-  - no_reboot_needed
-  - restrict_strategy
-
-- name: Ensure the desired value for pam_faillock.so authfail fail_interval parameter in auth section
-  ansible.builtin.lineinfile:
-    path: '{{ item }}'
-    backrefs: true
-    regexp: (^\s*auth\s+)([\w\[].*\b)(\s+pam_faillock.so authfail.*)(fail_interval)=[0-5]+(.*)
-    line: \1required\3\4={{ var_accounts_passwords_pam_faillock_fail_interval }}\5
-    state: present
-  loop:
-  - /etc/pam.d/system-auth
-  - /etc/pam.d/password-auth
-  when:
-  - accounts_passwords_pam_faillock_interval | bool
-  - low_complexity | bool
-  - low_disruption | bool
-  - medium_severity | bool
-  - no_reboot_needed | bool
-  - restrict_strategy | bool
-  - '"pam" in ansible_facts.packages'
-  - not result_faillock_conf_check.stat.exists
-  - result_pam_faillock_fail_interval.found > 0
   tags:
   - CCE-27297-1
   - DISA-STIG-RHEL-07-010320
@@ -5309,61 +5575,7 @@
   - no_reboot_needed | bool
   - restrict_strategy | bool
 
-- name: Check if system relies on authconfig
-  ansible.builtin.stat:
-    path: /usr/sbin/authconfig
-  register: result_authconfig_check
-  when:
-  - accounts_passwords_pam_faillock_unlock_time | bool
-  - low_complexity | bool
-  - low_disruption | bool
-  - medium_severity | bool
-  - no_reboot_needed | bool
-  - restrict_strategy | bool
-  - '"pam" in ansible_facts.packages'
-  tags:
-  - CCE-26884-7
-  - CJIS-5.5.3
-  - DISA-STIG-RHEL-07-010320
-  - NIST-800-171-3.1.8
-  - NIST-800-53-AC-7(b)
-  - NIST-800-53-CM-6(a)
-  - PCI-DSS-Req-8.1.7
-  - accounts_passwords_pam_faillock_unlock_time
-  - low_complexity
-  - low_disruption
-  - medium_severity
-  - no_reboot_needed
-  - restrict_strategy
-
-- name: Ensure pam_faillock.so is properly enabled using authconfig tool
-  ansible.builtin.command:
-    cmd: authconfig --enablefaillock --update
-  when:
-  - accounts_passwords_pam_faillock_unlock_time | bool
-  - low_complexity | bool
-  - low_disruption | bool
-  - medium_severity | bool
-  - no_reboot_needed | bool
-  - restrict_strategy | bool
-  - '"pam" in ansible_facts.packages'
-  - result_authconfig_check.stat.exists
-  tags:
-  - CCE-26884-7
-  - CJIS-5.5.3
-  - DISA-STIG-RHEL-07-010320
-  - NIST-800-171-3.1.8
-  - NIST-800-53-AC-7(b)
-  - NIST-800-53-CM-6(a)
-  - PCI-DSS-Req-8.1.7
-  - accounts_passwords_pam_faillock_unlock_time
-  - low_complexity
-  - low_disruption
-  - medium_severity
-  - no_reboot_needed
-  - restrict_strategy
-
-- name: Check if system relies on authselect
+- name: Set Lockout Time for Failed Password Attempts - Check if system relies on authselect tool
   ansible.builtin.stat:
     path: /usr/bin/authselect
   register: result_authselect_present
@@ -5375,7 +5587,6 @@
   - no_reboot_needed | bool
   - restrict_strategy | bool
   - '"pam" in ansible_facts.packages'
-  - not result_authconfig_check.stat.exists
   tags:
   - CCE-26884-7
   - CJIS-5.5.3
@@ -5391,48 +5602,40 @@
   - no_reboot_needed
   - restrict_strategy
 
-- name: Check integrity of authselect current profile
-  ansible.builtin.command:
-    cmd: authselect check
-  register: result_authselect_check_cmd
-  changed_when: false
-  ignore_errors: true
-  when:
-  - accounts_passwords_pam_faillock_unlock_time | bool
-  - low_complexity | bool
-  - low_disruption | bool
-  - medium_severity | bool
-  - no_reboot_needed | bool
-  - restrict_strategy | bool
-  - '"pam" in ansible_facts.packages'
-  - result_authselect_present is not skipped
-  - result_authselect_present.stat.exists
-  tags:
-  - CCE-26884-7
-  - CJIS-5.5.3
-  - DISA-STIG-RHEL-07-010320
-  - NIST-800-171-3.1.8
-  - NIST-800-53-AC-7(b)
-  - NIST-800-53-CM-6(a)
-  - PCI-DSS-Req-8.1.7
-  - accounts_passwords_pam_faillock_unlock_time
-  - low_complexity
-  - low_disruption
-  - medium_severity
-  - no_reboot_needed
-  - restrict_strategy
-
-- name: Informative message based on the authselect integrity check result
-  ansible.builtin.assert:
-    that:
+- name: Set Lockout Time for Failed Password Attempts - Remediation where authselect tool is present
+  block:
+  - name: Set Lockout Time for Failed Password Attempts - Check integrity of authselect current profile
+    ansible.builtin.command:
+      cmd: authselect check
+    register: result_authselect_check_cmd
+    changed_when: false
+    ignore_errors: true
+  - name: Set Lockout Time for Failed Password Attempts - Informative message based on the authselect integrity check result
+    ansible.builtin.assert:
+      that:
+      - result_authselect_check_cmd is success
+      fail_msg:
+      - authselect integrity check failed. Remediation aborted!
+      - This remediation could not be applied because an authselect profile was not selected or the selected profile is not
+        intact.
+      - It is not recommended to manually edit the PAM files when authselect tool is available.
+      - In cases where the default authselect profile does not cover a specific demand, a custom authselect profile is recommended.
+      success_msg:
+      - authselect integrity check passed
+  - name: Set Lockout Time for Failed Password Attempts - Get authselect current features
+    ansible.builtin.shell:
+      cmd: authselect current | tail -n+3 | awk '{ print $2 }'
+    register: result_authselect_features
+    changed_when: false
+    when:
     - result_authselect_check_cmd is success
-    fail_msg:
-    - authselect integrity check failed. Remediation aborted!
-    - This remediation could not be applied because the authselect profile is not intact.
-    - It is not recommended to manually edit the PAM files when authselect is available
-    - In cases where the default authselect profile does not cover a specific demand, a custom authselect profile is recommended.
-    success_msg:
-    - authselect integrity check passed
+  - name: Set Lockout Time for Failed Password Attempts - Ensure with-faillock feature is enabled using authselect tool
+    ansible.builtin.command:
+      cmd: authselect enable-feature with-faillock
+    register: result_authselect_cmd
+    when:
+    - result_authselect_check_cmd is success
+    - result_authselect_features.stdout is not search("with-faillock")
   when:
   - accounts_passwords_pam_faillock_unlock_time | bool
   - low_complexity | bool
@@ -5441,38 +5644,7 @@
   - no_reboot_needed | bool
   - restrict_strategy | bool
   - '"pam" in ansible_facts.packages'
-  - result_authselect_present is not skipped
-  tags:
-  - CCE-26884-7
-  - CJIS-5.5.3
-  - DISA-STIG-RHEL-07-010320
-  - NIST-800-171-3.1.8
-  - NIST-800-53-AC-7(b)
-  - NIST-800-53-CM-6(a)
-  - PCI-DSS-Req-8.1.7
-  - accounts_passwords_pam_faillock_unlock_time
-  - low_complexity
-  - low_disruption
-  - medium_severity
-  - no_reboot_needed
-  - restrict_strategy
-
-- name: Get authselect current features
-  ansible.builtin.shell:
-    cmd: authselect current | tail -n+3 | awk '{ print $2 }'
-  register: result_authselect_features
-  changed_when: false
-  when:
-  - accounts_passwords_pam_faillock_unlock_time | bool
-  - low_complexity | bool
-  - low_disruption | bool
-  - medium_severity | bool
-  - no_reboot_needed | bool
-  - restrict_strategy | bool
-  - '"pam" in ansible_facts.packages'
-  - result_authselect_present is not skipped
   - result_authselect_present.stat.exists
-  - result_authselect_check_cmd is success
   tags:
   - CCE-26884-7
   - CJIS-5.5.3
@@ -5488,10 +5660,49 @@
   - no_reboot_needed
   - restrict_strategy
 
-- name: Ensure with-faillock feature is enabled via authselect tool
-  ansible.builtin.command:
-    cmd: authselect enable-feature with-faillock
-  register: result_authselect_cmd
+- name: Set Lockout Time for Failed Password Attempts - Remediation where authselect tool is not present
+  block:
+  - name: Set Lockout Time for Failed Password Attempts - Check if pam_faillock.so is already enabled
+    ansible.builtin.lineinfile:
+      path: /etc/pam.d/system-auth
+      regexp: .*auth.*pam_faillock.so (preauth|authfail)
+      state: absent
+    check_mode: true
+    changed_when: false
+    register: result_pam_faillock_is_enabled
+  - name: Set Lockout Time for Failed Password Attempts - Enable pam_faillock.so preauth editing PAM files
+    ansible.builtin.lineinfile:
+      path: '{{ item }}'
+      line: auth        required      pam_faillock.so preauth
+      insertbefore: ^auth.*sufficient.*pam_unix.so.*
+      state: present
+    loop:
+    - /etc/pam.d/system-auth
+    - /etc/pam.d/password-auth
+    when:
+    - result_pam_faillock_is_enabled.found == 0
+  - name: Set Lockout Time for Failed Password Attempts - Enable pam_faillock.so authfail editing PAM files
+    ansible.builtin.lineinfile:
+      path: '{{ item }}'
+      line: auth        required      pam_faillock.so authfail
+      insertafter: ^auth.*sufficient.*pam_unix.so.*
+      state: present
+    loop:
+    - /etc/pam.d/system-auth
+    - /etc/pam.d/password-auth
+    when:
+    - result_pam_faillock_is_enabled.found == 0
+  - name: Set Lockout Time for Failed Password Attempts - Enable pam_faillock.so account section editing PAM files
+    ansible.builtin.lineinfile:
+      path: '{{ item }}'
+      line: account     required      pam_faillock.so
+      insertbefore: ^account.*required.*pam_unix.so.*
+      state: present
+    loop:
+    - /etc/pam.d/system-auth
+    - /etc/pam.d/password-auth
+    when:
+    - result_pam_faillock_is_enabled.found == 0
   when:
   - accounts_passwords_pam_faillock_unlock_time | bool
   - low_complexity | bool
@@ -5500,10 +5711,7 @@
   - no_reboot_needed | bool
   - restrict_strategy | bool
   - '"pam" in ansible_facts.packages'
-  - result_authselect_present is not skipped
-  - result_authselect_present.stat.exists
-  - result_authselect_check_cmd is success
-  - result_authselect_features.stdout is not search("with-faillock")
+  - not result_authselect_present.stat.exists
   tags:
   - CCE-26884-7
   - CJIS-5.5.3
@@ -5519,7 +5727,7 @@
   - no_reboot_needed
   - restrict_strategy
 
-- name: Check the presence of /etc/security/faillock.conf file
+- name: Set Lockout Time for Failed Password Attempts - Check the presence of /etc/security/faillock.conf file
   ansible.builtin.stat:
     path: /etc/security/faillock.conf
   register: result_faillock_conf_check
@@ -5546,7 +5754,7 @@
   - no_reboot_needed
   - restrict_strategy
 
-- name: Ensure the pam_faillock.so unlock_time parameter in /etc/security/faillock.conf
+- name: Set Lockout Time for Failed Password Attempts - Ensure the pam_faillock.so unlock_time parameter in /etc/security/faillock.conf
   ansible.builtin.lineinfile:
     path: /etc/security/faillock.conf
     regexp: ^\s*unlock_time\s*=
@@ -5576,50 +5784,69 @@
   - no_reboot_needed
   - restrict_strategy
 
-- name: Ensure the pam_faillock.so preauth unlock_time parameter in auth section
-  ansible.builtin.lineinfile:
-    path: '{{ item }}'
-    backrefs: true
-    regexp: (^\s*auth\s+)([\w\[].*\b)(\s+pam_faillock.so preauth.*)(unlock_time)=[0-5]+(.*)
-    line: \1required\3\4={{ var_accounts_passwords_pam_faillock_unlock_time }}\5
-    state: present
-  loop:
-  - /etc/pam.d/system-auth
-  - /etc/pam.d/password-auth
-  when:
-  - accounts_passwords_pam_faillock_unlock_time | bool
-  - low_complexity | bool
-  - low_disruption | bool
-  - medium_severity | bool
-  - no_reboot_needed | bool
-  - restrict_strategy | bool
-  - '"pam" in ansible_facts.packages'
-  - not result_faillock_conf_check.stat.exists
-  tags:
-  - CCE-26884-7
-  - CJIS-5.5.3
-  - DISA-STIG-RHEL-07-010320
-  - NIST-800-171-3.1.8
-  - NIST-800-53-AC-7(b)
-  - NIST-800-53-CM-6(a)
-  - PCI-DSS-Req-8.1.7
-  - accounts_passwords_pam_faillock_unlock_time
-  - low_complexity
-  - low_disruption
-  - medium_severity
-  - no_reboot_needed
-  - restrict_strategy
-
-- name: Ensure the pam_faillock.so authfail unlock_time parameter in auth section
-  ansible.builtin.lineinfile:
-    path: '{{ item }}'
-    backrefs: true
-    regexp: (^\s*auth\s+)([\w\[].*\b)(\s+pam_faillock.so authfail.*)(unlock_time)=[0-5]+(.*)
-    line: \1required\3\4={{ var_accounts_passwords_pam_faillock_unlock_time }}\5
-    state: present
-  loop:
-  - /etc/pam.d/system-auth
-  - /etc/pam.d/password-auth
+- name: Set Lockout Time for Failed Password Attempts - Ensure the pam_faillock.so unlock_time parameter in PAM files
+  block:
+  - name: Set Lockout Time for Failed Password Attempts - Check if pam_faillock.so unlock_time parameter is already enabled
+      in pam files
+    ansible.builtin.lineinfile:
+      path: /etc/pam.d/system-auth
+      regexp: .*auth.*pam_faillock.so (preauth|authfail).*unlock_time
+      state: absent
+    check_mode: true
+    changed_when: false
+    register: result_pam_faillock_unlock_time_parameter_is_present
+  - name: Set Lockout Time for Failed Password Attempts - Ensure the inclusion of pam_faillock.so preauth unlock_time parameter
+      in auth section
+    ansible.builtin.lineinfile:
+      path: '{{ item }}'
+      backrefs: true
+      regexp: (^\s*auth\s+)([\w\[].*\b)(\s+pam_faillock.so preauth.*)
+      line: \1required\3 unlock_time={{ var_accounts_passwords_pam_faillock_unlock_time }}
+      state: present
+    loop:
+    - /etc/pam.d/system-auth
+    - /etc/pam.d/password-auth
+    when:
+    - result_pam_faillock_unlock_time_parameter_is_present.found == 0
+  - name: Set Lockout Time for Failed Password Attempts - Ensure the inclusion of pam_faillock.so authfail unlock_time parameter
+      in auth section
+    ansible.builtin.lineinfile:
+      path: '{{ item }}'
+      backrefs: true
+      regexp: (^\s*auth\s+)([\w\[].*\b)(\s+pam_faillock.so authfail.*)
+      line: \1required\3 unlock_time={{ var_accounts_passwords_pam_faillock_unlock_time }}
+      state: present
+    loop:
+    - /etc/pam.d/system-auth
+    - /etc/pam.d/password-auth
+    when:
+    - result_pam_faillock_unlock_time_parameter_is_present.found == 0
+  - name: Set Lockout Time for Failed Password Attempts - Ensure the desired value for pam_faillock.so preauth unlock_time
+      parameter in auth section
+    ansible.builtin.lineinfile:
+      path: '{{ item }}'
+      backrefs: true
+      regexp: (^\s*auth\s+)([\w\[].*\b)(\s+pam_faillock.so preauth.*)(unlock_time)=[0-9]+(.*)
+      line: \1required\3\4={{ var_accounts_passwords_pam_faillock_unlock_time }}\5
+      state: present
+    loop:
+    - /etc/pam.d/system-auth
+    - /etc/pam.d/password-auth
+    when:
+    - result_pam_faillock_unlock_time_parameter_is_present.found > 0
+  - name: Set Lockout Time for Failed Password Attempts - Ensure the desired value for pam_faillock.so authfail unlock_time
+      parameter in auth section
+    ansible.builtin.lineinfile:
+      path: '{{ item }}'
+      backrefs: true
+      regexp: (^\s*auth\s+)([\w\[].*\b)(\s+pam_faillock.so authfail.*)(unlock_time)=[0-9]+(.*)
+      line: \1required\3\4={{ var_accounts_passwords_pam_faillock_unlock_time }}\5
+      state: present
+    loop:
+    - /etc/pam.d/system-auth
+    - /etc/pam.d/password-auth
+    when:
+    - result_pam_faillock_unlock_time_parameter_is_present.found > 0
   when:
   - accounts_passwords_pam_faillock_unlock_time | bool
   - low_complexity | bool
@@ -10420,7 +10647,7 @@
   tags:
   - CCE-27393-8
   - CJIS-5.4.1.1
-  - DISA-STIG-RHEL-07-030420
+  - DISA-STIG-RHEL-07-030410
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -10454,7 +10681,7 @@
   tags:
   - CCE-27393-8
   - CJIS-5.4.1.1
-  - DISA-STIG-RHEL-07-030420
+  - DISA-STIG-RHEL-07-030410
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -10573,7 +10800,7 @@
   tags:
   - CCE-27393-8
   - CJIS-5.4.1.1
-  - DISA-STIG-RHEL-07-030420
+  - DISA-STIG-RHEL-07-030410
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -10693,7 +10920,7 @@
   tags:
   - CCE-27393-8
   - CJIS-5.4.1.1
-  - DISA-STIG-RHEL-07-030420
+  - DISA-STIG-RHEL-07-030410
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -10712,7 +10939,7 @@
   tags:
   - CCE-27388-8
   - CJIS-5.4.1.1
-  - DISA-STIG-RHEL-07-030430
+  - DISA-STIG-RHEL-07-030410
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -10746,7 +10973,7 @@
   tags:
   - CCE-27388-8
   - CJIS-5.4.1.1
-  - DISA-STIG-RHEL-07-030430
+  - DISA-STIG-RHEL-07-030410
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -10865,7 +11092,7 @@
   tags:
   - CCE-27388-8
   - CJIS-5.4.1.1
-  - DISA-STIG-RHEL-07-030430
+  - DISA-STIG-RHEL-07-030410
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -10985,7 +11212,7 @@
   tags:
   - CCE-27388-8
   - CJIS-5.4.1.1
-  - DISA-STIG-RHEL-07-030430
+  - DISA-STIG-RHEL-07-030410
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -11004,7 +11231,7 @@
   tags:
   - CCE-27356-5
   - CJIS-5.4.1.1
-  - DISA-STIG-RHEL-07-030380
+  - DISA-STIG-RHEL-07-030370
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -11038,7 +11265,7 @@
   tags:
   - CCE-27356-5
   - CJIS-5.4.1.1
-  - DISA-STIG-RHEL-07-030380
+  - DISA-STIG-RHEL-07-030370
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -11159,7 +11386,7 @@
   tags:
   - CCE-27356-5
   - CJIS-5.4.1.1
-  - DISA-STIG-RHEL-07-030380
+  - DISA-STIG-RHEL-07-030370
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -11281,7 +11508,7 @@
   tags:
   - CCE-27356-5
   - CJIS-5.4.1.1
-  - DISA-STIG-RHEL-07-030380
+  - DISA-STIG-RHEL-07-030370
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -11300,7 +11527,7 @@
   tags:
   - CCE-27387-0
   - CJIS-5.4.1.1
-  - DISA-STIG-RHEL-07-030400
+  - DISA-STIG-RHEL-07-030370
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -11334,7 +11561,7 @@
   tags:
   - CCE-27387-0
   - CJIS-5.4.1.1
-  - DISA-STIG-RHEL-07-030400
+  - DISA-STIG-RHEL-07-030370
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -11455,7 +11682,7 @@
   tags:
   - CCE-27387-0
   - CJIS-5.4.1.1
-  - DISA-STIG-RHEL-07-030400
+  - DISA-STIG-RHEL-07-030370
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -11577,7 +11804,7 @@
   tags:
   - CCE-27387-0
   - CJIS-5.4.1.1
-  - DISA-STIG-RHEL-07-030400
+  - DISA-STIG-RHEL-07-030370
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -11596,7 +11823,7 @@
   tags:
   - CCE-27353-2
   - CJIS-5.4.1.1
-  - DISA-STIG-RHEL-07-030480
+  - DISA-STIG-RHEL-07-030440
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -11630,7 +11857,7 @@
   tags:
   - CCE-27353-2
   - CJIS-5.4.1.1
-  - DISA-STIG-RHEL-07-030480
+  - DISA-STIG-RHEL-07-030440
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -11755,7 +11982,7 @@
   tags:
   - CCE-27353-2
   - CJIS-5.4.1.1
-  - DISA-STIG-RHEL-07-030480
+  - DISA-STIG-RHEL-07-030440
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -11881,7 +12108,7 @@
   tags:
   - CCE-27353-2
   - CJIS-5.4.1.1
-  - DISA-STIG-RHEL-07-030480
+  - DISA-STIG-RHEL-07-030440
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -11900,7 +12127,7 @@
   tags:
   - CCE-27389-6
   - CJIS-5.4.1.1
-  - DISA-STIG-RHEL-07-030450
+  - DISA-STIG-RHEL-07-030440
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -11934,7 +12161,7 @@
   tags:
   - CCE-27389-6
   - CJIS-5.4.1.1
-  - DISA-STIG-RHEL-07-030450
+  - DISA-STIG-RHEL-07-030440
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -12059,7 +12286,7 @@
   tags:
   - CCE-27389-6
   - CJIS-5.4.1.1
-  - DISA-STIG-RHEL-07-030450
+  - DISA-STIG-RHEL-07-030440
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -12185,7 +12412,7 @@
   tags:
   - CCE-27389-6
   - CJIS-5.4.1.1
-  - DISA-STIG-RHEL-07-030450
+  - DISA-STIG-RHEL-07-030440
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -12204,7 +12431,7 @@
   tags:
   - CCE-27083-5
   - CJIS-5.4.1.1
-  - DISA-STIG-RHEL-07-030390
+  - DISA-STIG-RHEL-07-030370
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -12238,7 +12465,7 @@
   tags:
   - CCE-27083-5
   - CJIS-5.4.1.1
-  - DISA-STIG-RHEL-07-030390
+  - DISA-STIG-RHEL-07-030370
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -12359,7 +12586,7 @@
   tags:
   - CCE-27083-5
   - CJIS-5.4.1.1
-  - DISA-STIG-RHEL-07-030390
+  - DISA-STIG-RHEL-07-030370
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -12481,7 +12708,7 @@
   tags:
   - CCE-27083-5
   - CJIS-5.4.1.1
-  - DISA-STIG-RHEL-07-030390
+  - DISA-STIG-RHEL-07-030370
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -12500,7 +12727,7 @@
   tags:
   - CCE-27410-0
   - CJIS-5.4.1.1
-  - DISA-STIG-RHEL-07-030490
+  - DISA-STIG-RHEL-07-030440
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -12534,7 +12761,7 @@
   tags:
   - CCE-27410-0
   - CJIS-5.4.1.1
-  - DISA-STIG-RHEL-07-030490
+  - DISA-STIG-RHEL-07-030440
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -12659,7 +12886,7 @@
   tags:
   - CCE-27410-0
   - CJIS-5.4.1.1
-  - DISA-STIG-RHEL-07-030490
+  - DISA-STIG-RHEL-07-030440
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -12785,7 +13012,7 @@
   tags:
   - CCE-27410-0
   - CJIS-5.4.1.1
-  - DISA-STIG-RHEL-07-030490
+  - DISA-STIG-RHEL-07-030440
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -12804,7 +13031,7 @@
   tags:
   - CCE-27280-7
   - CJIS-5.4.1.1
-  - DISA-STIG-RHEL-07-030460
+  - DISA-STIG-RHEL-07-030440
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -12838,7 +13065,7 @@
   tags:
   - CCE-27280-7
   - CJIS-5.4.1.1
-  - DISA-STIG-RHEL-07-030460
+  - DISA-STIG-RHEL-07-030440
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -12963,7 +13190,7 @@
   tags:
   - CCE-27280-7
   - CJIS-5.4.1.1
-  - DISA-STIG-RHEL-07-030460
+  - DISA-STIG-RHEL-07-030440
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -13089,7 +13316,7 @@
   tags:
   - CCE-27280-7
   - CJIS-5.4.1.1
-  - DISA-STIG-RHEL-07-030460
+  - DISA-STIG-RHEL-07-030440
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -13108,7 +13335,7 @@
   tags:
   - CCE-27367-2
   - CJIS-5.4.1.1
-  - DISA-STIG-RHEL-07-030470
+  - DISA-STIG-RHEL-07-030440
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -13142,7 +13369,7 @@
   tags:
   - CCE-27367-2
   - CJIS-5.4.1.1
-  - DISA-STIG-RHEL-07-030470
+  - DISA-STIG-RHEL-07-030440
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -13267,7 +13494,7 @@
   tags:
   - CCE-27367-2
   - CJIS-5.4.1.1
-  - DISA-STIG-RHEL-07-030470
+  - DISA-STIG-RHEL-07-030440
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -13393,7 +13620,7 @@
   tags:
   - CCE-27367-2
   - CJIS-5.4.1.1
-  - DISA-STIG-RHEL-07-030470
+  - DISA-STIG-RHEL-07-030440
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -14263,7 +14490,7 @@
     manager: auto
   tags:
   - CCE-80995-4
-  - DISA-STIG-RHEL-07-030880
+  - DISA-STIG-RHEL-07-030910
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -14296,7 +14523,7 @@
   - '"audit" in ansible_facts.packages'
   tags:
   - CCE-80995-4
-  - DISA-STIG-RHEL-07-030880
+  - DISA-STIG-RHEL-07-030910
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -14418,7 +14645,7 @@
   - '"audit" in ansible_facts.packages'
   tags:
   - CCE-80995-4
-  - DISA-STIG-RHEL-07-030880
+  - DISA-STIG-RHEL-07-030910
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -14541,7 +14768,7 @@
   - audit_arch == "b64"
   tags:
   - CCE-80995-4
-  - DISA-STIG-RHEL-07-030880
+  - DISA-STIG-RHEL-07-030910
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -14559,7 +14786,7 @@
     manager: auto
   tags:
   - CCE-80413-8
-  - DISA-STIG-RHEL-07-030890
+  - DISA-STIG-RHEL-07-030910
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -14592,7 +14819,7 @@
   - '"audit" in ansible_facts.packages'
   tags:
   - CCE-80413-8
-  - DISA-STIG-RHEL-07-030890
+  - DISA-STIG-RHEL-07-030910
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -14714,7 +14941,7 @@
   - '"audit" in ansible_facts.packages'
   tags:
   - CCE-80413-8
-  - DISA-STIG-RHEL-07-030890
+  - DISA-STIG-RHEL-07-030910
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -14837,7 +15064,7 @@
   - audit_arch == "b64"
   tags:
   - CCE-80413-8
-  - DISA-STIG-RHEL-07-030890
+  - DISA-STIG-RHEL-07-030910
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -14855,7 +15082,7 @@
     manager: auto
   tags:
   - CCE-80412-0
-  - DISA-STIG-RHEL-07-030900
+  - DISA-STIG-RHEL-07-030910
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -14888,7 +15115,7 @@
   - '"audit" in ansible_facts.packages'
   tags:
   - CCE-80412-0
-  - DISA-STIG-RHEL-07-030900
+  - DISA-STIG-RHEL-07-030910
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -15010,7 +15237,7 @@
   - '"audit" in ansible_facts.packages'
   tags:
   - CCE-80412-0
-  - DISA-STIG-RHEL-07-030900
+  - DISA-STIG-RHEL-07-030910
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -15133,7 +15360,7 @@
   - audit_arch == "b64"
   tags:
   - CCE-80412-0
-  - DISA-STIG-RHEL-07-030900
+  - DISA-STIG-RHEL-07-030910
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -15447,7 +15674,7 @@
     manager: auto
   tags:
   - CCE-80662-0
-  - DISA-STIG-RHEL-07-030920
+  - DISA-STIG-RHEL-07-030910
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -15480,7 +15707,7 @@
   - '"audit" in ansible_facts.packages'
   tags:
   - CCE-80662-0
-  - DISA-STIG-RHEL-07-030920
+  - DISA-STIG-RHEL-07-030910
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -15602,7 +15829,7 @@
   - '"audit" in ansible_facts.packages'
   tags:
   - CCE-80662-0
-  - DISA-STIG-RHEL-07-030920
+  - DISA-STIG-RHEL-07-030910
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -15725,7 +15952,7 @@
   - audit_arch == "b64"
   tags:
   - CCE-80662-0
-  - DISA-STIG-RHEL-07-030920
+  - DISA-STIG-RHEL-07-030910
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -15743,7 +15970,7 @@
     manager: auto
   tags:
   - CCE-80385-8
-  - DISA-STIG-RHEL-07-030500
+  - DISA-STIG-RHEL-07-030510
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -15777,7 +16004,7 @@
   - '"audit" in ansible_facts.packages'
   tags:
   - CCE-80385-8
-  - DISA-STIG-RHEL-07-030500
+  - DISA-STIG-RHEL-07-030510
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -15904,7 +16131,7 @@
   - '"audit" in ansible_facts.packages'
   tags:
   - CCE-80385-8
-  - DISA-STIG-RHEL-07-030500
+  - DISA-STIG-RHEL-07-030510
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -16032,7 +16259,7 @@
   - audit_arch == "b64"
   tags:
   - CCE-80385-8
-  - DISA-STIG-RHEL-07-030500
+  - DISA-STIG-RHEL-07-030510
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -16159,7 +16386,7 @@
   - '"audit" in ansible_facts.packages'
   tags:
   - CCE-80385-8
-  - DISA-STIG-RHEL-07-030500
+  - DISA-STIG-RHEL-07-030510
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -16287,7 +16514,7 @@
   - audit_arch == "b64"
   tags:
   - CCE-80385-8
-  - DISA-STIG-RHEL-07-030500
+  - DISA-STIG-RHEL-07-030510
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -16306,7 +16533,7 @@
     manager: auto
   tags:
   - CCE-80390-8
-  - DISA-STIG-RHEL-07-030550
+  - DISA-STIG-RHEL-07-030510
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -16340,7 +16567,7 @@
   - '"audit" in ansible_facts.packages'
   tags:
   - CCE-80390-8
-  - DISA-STIG-RHEL-07-030550
+  - DISA-STIG-RHEL-07-030510
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -16467,7 +16694,7 @@
   - '"audit" in ansible_facts.packages'
   tags:
   - CCE-80390-8
-  - DISA-STIG-RHEL-07-030550
+  - DISA-STIG-RHEL-07-030510
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -16595,7 +16822,7 @@
   - audit_arch == "b64"
   tags:
   - CCE-80390-8
-  - DISA-STIG-RHEL-07-030550
+  - DISA-STIG-RHEL-07-030510
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -16722,7 +16949,7 @@
   - '"audit" in ansible_facts.packages'
   tags:
   - CCE-80390-8
-  - DISA-STIG-RHEL-07-030550
+  - DISA-STIG-RHEL-07-030510
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -16850,7 +17077,7 @@
   - audit_arch == "b64"
   tags:
   - CCE-80390-8
-  - DISA-STIG-RHEL-07-030550
+  - DISA-STIG-RHEL-07-030510
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -17432,7 +17659,7 @@
     manager: auto
   tags:
   - CCE-80388-2
-  - DISA-STIG-RHEL-07-030530
+  - DISA-STIG-RHEL-07-030510
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -17466,7 +17693,7 @@
   - '"audit" in ansible_facts.packages'
   tags:
   - CCE-80388-2
-  - DISA-STIG-RHEL-07-030530
+  - DISA-STIG-RHEL-07-030510
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -17593,7 +17820,7 @@
   - '"audit" in ansible_facts.packages'
   tags:
   - CCE-80388-2
-  - DISA-STIG-RHEL-07-030530
+  - DISA-STIG-RHEL-07-030510
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -17721,7 +17948,7 @@
   - audit_arch == "b64"
   tags:
   - CCE-80388-2
-  - DISA-STIG-RHEL-07-030530
+  - DISA-STIG-RHEL-07-030510
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -17848,7 +18075,7 @@
   - '"audit" in ansible_facts.packages'
   tags:
   - CCE-80388-2
-  - DISA-STIG-RHEL-07-030530
+  - DISA-STIG-RHEL-07-030510
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -17976,7 +18203,7 @@
   - audit_arch == "b64"
   tags:
   - CCE-80388-2
-  - DISA-STIG-RHEL-07-030530
+  - DISA-STIG-RHEL-07-030510
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -17995,7 +18222,7 @@
     manager: auto
   tags:
   - CCE-80387-4
-  - DISA-STIG-RHEL-07-030520
+  - DISA-STIG-RHEL-07-030510
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -18029,7 +18256,7 @@
   - '"audit" in ansible_facts.packages'
   tags:
   - CCE-80387-4
-  - DISA-STIG-RHEL-07-030520
+  - DISA-STIG-RHEL-07-030510
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -18156,7 +18383,7 @@
   - '"audit" in ansible_facts.packages'
   tags:
   - CCE-80387-4
-  - DISA-STIG-RHEL-07-030520
+  - DISA-STIG-RHEL-07-030510
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -18284,7 +18511,7 @@
   - audit_arch == "b64"
   tags:
   - CCE-80387-4
-  - DISA-STIG-RHEL-07-030520
+  - DISA-STIG-RHEL-07-030510
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -18411,7 +18638,7 @@
   - '"audit" in ansible_facts.packages'
   tags:
   - CCE-80387-4
-  - DISA-STIG-RHEL-07-030520
+  - DISA-STIG-RHEL-07-030510
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -18539,7 +18766,7 @@
   - audit_arch == "b64"
   tags:
   - CCE-80387-4
-  - DISA-STIG-RHEL-07-030520
+  - DISA-STIG-RHEL-07-030510
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -18558,7 +18785,7 @@
     manager: auto
   tags:
   - CCE-80389-0
-  - DISA-STIG-RHEL-07-030540
+  - DISA-STIG-RHEL-07-030510
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -18592,7 +18819,7 @@
   - '"audit" in ansible_facts.packages'
   tags:
   - CCE-80389-0
-  - DISA-STIG-RHEL-07-030540
+  - DISA-STIG-RHEL-07-030510
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -18719,7 +18946,7 @@
   - '"audit" in ansible_facts.packages'
   tags:
   - CCE-80389-0
-  - DISA-STIG-RHEL-07-030540
+  - DISA-STIG-RHEL-07-030510
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -18847,7 +19074,7 @@
   - audit_arch == "b64"
   tags:
   - CCE-80389-0
-  - DISA-STIG-RHEL-07-030540
+  - DISA-STIG-RHEL-07-030510
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -18974,7 +19201,7 @@
   - '"audit" in ansible_facts.packages'
   tags:
   - CCE-80389-0
-  - DISA-STIG-RHEL-07-030540
+  - DISA-STIG-RHEL-07-030510
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -19102,7 +19329,7 @@
   - audit_arch == "b64"
   tags:
   - CCE-80389-0
-  - DISA-STIG-RHEL-07-030540
+  - DISA-STIG-RHEL-07-030510
   - NIST-800-171-3.1.7
   - NIST-800-53-AU-12(c)
   - NIST-800-53-AU-2(d)
@@ -19401,7 +19628,7 @@
     manager: auto
   tags:
   - CCE-80547-3
-  - DISA-STIG-RHEL-07-030821
+  - DISA-STIG-RHEL-07-030820
   - NIST-800-171-3.1.7
   - NIST-800-53-AC-6(9)
   - NIST-800-53-AU-12(c)
@@ -19435,7 +19662,7 @@
   - '"audit" in ansible_facts.packages'
   tags:
   - CCE-80547-3
-  - DISA-STIG-RHEL-07-030821
+  - DISA-STIG-RHEL-07-030820
   - NIST-800-171-3.1.7
   - NIST-800-53-AC-6(9)
   - NIST-800-53-AU-12(c)
@@ -19552,7 +19779,7 @@
   - '"audit" in ansible_facts.packages'
   tags:
   - CCE-80547-3
-  - DISA-STIG-RHEL-07-030821
+  - DISA-STIG-RHEL-07-030820
   - NIST-800-171-3.1.7
   - NIST-800-53-AC-6(9)
   - NIST-800-53-AU-12(c)
@@ -19670,7 +19897,7 @@
   - audit_arch == "b64"
   tags:
   - CCE-80547-3
-  - DISA-STIG-RHEL-07-030821
+  - DISA-STIG-RHEL-07-030820
   - NIST-800-171-3.1.7
   - NIST-800-53-AC-6(9)
   - NIST-800-53-AU-12(c)
@@ -24018,43 +24245,8 @@
   - medium_severity
   - reboot_required
 
-- name: Gather the package facts
-  package_facts:
-    manager: auto
-  tags:
-  - CCE-27358-1
-  - DISA-STIG-RHEL-07-041010
-  - NIST-800-171-3.1.16
-  - NIST-800-53-AC-18(3)
-  - NIST-800-53-AC-18(a)
-  - NIST-800-53-CM-6(a)
-  - NIST-800-53-CM-7(a)
-  - NIST-800-53-CM-7(b)
-  - NIST-800-53-MP-7
-  - low_complexity
-  - medium_disruption
-  - medium_severity
-  - no_reboot_needed
-  - unknown_strategy
-  - wireless_disable_interfaces
-  when:
-  - low_complexity | bool
-  - medium_disruption | bool
-  - medium_severity | bool
-  - no_reboot_needed | bool
-  - unknown_strategy | bool
-  - wireless_disable_interfaces | bool
-
 - name: Deactivate Wireless Network Interfaces
   command: nmcli radio wifi off
-  when:
-  - low_complexity | bool
-  - medium_disruption | bool
-  - medium_severity | bool
-  - no_reboot_needed | bool
-  - unknown_strategy | bool
-  - wireless_disable_interfaces | bool
-  - '"wifi-iface" in ansible_facts.packages'
   tags:
   - CCE-27358-1
   - DISA-STIG-RHEL-07-041010
@@ -24071,18 +24263,23 @@
   - no_reboot_needed
   - unknown_strategy
   - wireless_disable_interfaces
+  when:
+  - low_complexity | bool
+  - medium_disruption | bool
+  - medium_severity | bool
+  - no_reboot_needed | bool
+  - unknown_strategy | bool
+  - wireless_disable_interfaces | bool
 
 - name: Disable service autofs
   block:
-  - name: Gather the service facts
-    service_facts: null
   - name: Disable service autofs
     systemd:
       name: autofs.service
       enabled: 'no'
       state: stopped
       masked: 'yes'
-    when: '"autofs.service" in ansible_facts.services'
+    ignore_errors: 'yes'
   when:
   - disable_strategy | bool
   - low_complexity | bool
@@ -24195,7 +24392,7 @@
   - medium_severity
   - reboot_required
 
-- name: Check information associated to mountpoint
+- name: 'Add nodev Option to /dev/shm: Check information associated to mountpoint'
   command: findmnt  '/dev/shm'
   register: device_name
   failed_when: device_name.rc > 1
@@ -24204,7 +24401,7 @@
   - configure_strategy | bool
   - high_disruption | bool
   - low_complexity | bool
-  - low_severity | bool
+  - medium_severity | bool
   - mount_option_dev_shm_nodev | bool
   - no_reboot_needed | bool
   - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
@@ -24220,11 +24417,11 @@
   - configure_strategy
   - high_disruption
   - low_complexity
-  - low_severity
+  - medium_severity
   - mount_option_dev_shm_nodev
   - no_reboot_needed
 
-- name: Create mount_info dictionary variable
+- name: 'Add nodev Option to /dev/shm: Create mount_info dictionary variable'
   set_fact:
     mount_info: '{{ mount_info|default({})|combine({item.0: item.1}) }}'
   with_together:
@@ -24234,7 +24431,7 @@
   - configure_strategy | bool
   - high_disruption | bool
   - low_complexity | bool
-  - low_severity | bool
+  - medium_severity | bool
   - mount_option_dev_shm_nodev | bool
   - no_reboot_needed | bool
   - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
@@ -24252,11 +24449,11 @@
   - configure_strategy
   - high_disruption
   - low_complexity
-  - low_severity
+  - medium_severity
   - mount_option_dev_shm_nodev
   - no_reboot_needed
 
-- name: If /dev/shm not mounted, craft mount_info manually
+- name: 'Add nodev Option to /dev/shm: If /dev/shm not mounted, craft mount_info manually'
   set_fact:
     mount_info: '{{ mount_info|default({})|combine({item.0: item.1}) }}'
   with_together:
@@ -24272,7 +24469,7 @@
   - configure_strategy | bool
   - high_disruption | bool
   - low_complexity | bool
-  - low_severity | bool
+  - medium_severity | bool
   - mount_option_dev_shm_nodev | bool
   - no_reboot_needed | bool
   - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
@@ -24290,18 +24487,18 @@
   - configure_strategy
   - high_disruption
   - low_complexity
-  - low_severity
+  - medium_severity
   - mount_option_dev_shm_nodev
   - no_reboot_needed
 
-- name: Make sure nodev option is part of the to /dev/shm options
+- name: 'Add nodev Option to /dev/shm: Make sure nodev option is part of the to /dev/shm options'
   set_fact:
     mount_info: '{{ mount_info | combine( {''options'':''''~mount_info.options~'',nodev'' }) }}'
   when:
   - configure_strategy | bool
   - high_disruption | bool
   - low_complexity | bool
-  - low_severity | bool
+  - medium_severity | bool
   - mount_option_dev_shm_nodev | bool
   - no_reboot_needed | bool
   - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
@@ -24318,11 +24515,11 @@
   - configure_strategy
   - high_disruption
   - low_complexity
-  - low_severity
+  - medium_severity
   - mount_option_dev_shm_nodev
   - no_reboot_needed
 
-- name: Ensure /dev/shm is mounted with nodev option
+- name: 'Add nodev Option to /dev/shm: Ensure /dev/shm is mounted with nodev option'
   mount:
     path: /dev/shm
     src: '{{ mount_info.source }}'
@@ -24333,7 +24530,7 @@
   - configure_strategy | bool
   - high_disruption | bool
   - low_complexity | bool
-  - low_severity | bool
+  - medium_severity | bool
   - mount_option_dev_shm_nodev | bool
   - no_reboot_needed | bool
   - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
@@ -24350,11 +24547,11 @@
   - configure_strategy
   - high_disruption
   - low_complexity
-  - low_severity
+  - medium_severity
   - mount_option_dev_shm_nodev
   - no_reboot_needed
 
-- name: Check information associated to mountpoint
+- name: 'Add noexec Option to /dev/shm: Check information associated to mountpoint'
   command: findmnt  '/dev/shm'
   register: device_name
   failed_when: device_name.rc > 1
@@ -24363,7 +24560,7 @@
   - configure_strategy | bool
   - high_disruption | bool
   - low_complexity | bool
-  - low_severity | bool
+  - medium_severity | bool
   - mount_option_dev_shm_noexec | bool
   - no_reboot_needed | bool
   - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
@@ -24379,11 +24576,11 @@
   - configure_strategy
   - high_disruption
   - low_complexity
-  - low_severity
+  - medium_severity
   - mount_option_dev_shm_noexec
   - no_reboot_needed
 
-- name: Create mount_info dictionary variable
+- name: 'Add noexec Option to /dev/shm: Create mount_info dictionary variable'
   set_fact:
     mount_info: '{{ mount_info|default({})|combine({item.0: item.1}) }}'
   with_together:
@@ -24393,7 +24590,7 @@
   - configure_strategy | bool
   - high_disruption | bool
   - low_complexity | bool
-  - low_severity | bool
+  - medium_severity | bool
   - mount_option_dev_shm_noexec | bool
   - no_reboot_needed | bool
   - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
@@ -24411,11 +24608,11 @@
   - configure_strategy
   - high_disruption
   - low_complexity
-  - low_severity
+  - medium_severity
   - mount_option_dev_shm_noexec
   - no_reboot_needed
 
-- name: If /dev/shm not mounted, craft mount_info manually
+- name: 'Add noexec Option to /dev/shm: If /dev/shm not mounted, craft mount_info manually'
   set_fact:
     mount_info: '{{ mount_info|default({})|combine({item.0: item.1}) }}'
   with_together:
@@ -24431,7 +24628,7 @@
   - configure_strategy | bool
   - high_disruption | bool
   - low_complexity | bool
-  - low_severity | bool
+  - medium_severity | bool
   - mount_option_dev_shm_noexec | bool
   - no_reboot_needed | bool
   - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
@@ -24449,18 +24646,18 @@
   - configure_strategy
   - high_disruption
   - low_complexity
-  - low_severity
+  - medium_severity
   - mount_option_dev_shm_noexec
   - no_reboot_needed
 
-- name: Make sure noexec option is part of the to /dev/shm options
+- name: 'Add noexec Option to /dev/shm: Make sure noexec option is part of the to /dev/shm options'
   set_fact:
     mount_info: '{{ mount_info | combine( {''options'':''''~mount_info.options~'',noexec'' }) }}'
   when:
   - configure_strategy | bool
   - high_disruption | bool
   - low_complexity | bool
-  - low_severity | bool
+  - medium_severity | bool
   - mount_option_dev_shm_noexec | bool
   - no_reboot_needed | bool
   - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
@@ -24477,11 +24674,11 @@
   - configure_strategy
   - high_disruption
   - low_complexity
-  - low_severity
+  - medium_severity
   - mount_option_dev_shm_noexec
   - no_reboot_needed
 
-- name: Ensure /dev/shm is mounted with noexec option
+- name: 'Add noexec Option to /dev/shm: Ensure /dev/shm is mounted with noexec option'
   mount:
     path: /dev/shm
     src: '{{ mount_info.source }}'
@@ -24492,7 +24689,7 @@
   - configure_strategy | bool
   - high_disruption | bool
   - low_complexity | bool
-  - low_severity | bool
+  - medium_severity | bool
   - mount_option_dev_shm_noexec | bool
   - no_reboot_needed | bool
   - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
@@ -24509,11 +24706,11 @@
   - configure_strategy
   - high_disruption
   - low_complexity
-  - low_severity
+  - medium_severity
   - mount_option_dev_shm_noexec
   - no_reboot_needed
 
-- name: Check information associated to mountpoint
+- name: 'Add nosuid Option to /dev/shm: Check information associated to mountpoint'
   command: findmnt  '/dev/shm'
   register: device_name
   failed_when: device_name.rc > 1
@@ -24522,7 +24719,7 @@
   - configure_strategy | bool
   - high_disruption | bool
   - low_complexity | bool
-  - low_severity | bool
+  - medium_severity | bool
   - mount_option_dev_shm_nosuid | bool
   - no_reboot_needed | bool
   - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
@@ -24538,11 +24735,11 @@
   - configure_strategy
   - high_disruption
   - low_complexity
-  - low_severity
+  - medium_severity
   - mount_option_dev_shm_nosuid
   - no_reboot_needed
 
-- name: Create mount_info dictionary variable
+- name: 'Add nosuid Option to /dev/shm: Create mount_info dictionary variable'
   set_fact:
     mount_info: '{{ mount_info|default({})|combine({item.0: item.1}) }}'
   with_together:
@@ -24552,7 +24749,7 @@
   - configure_strategy | bool
   - high_disruption | bool
   - low_complexity | bool
-  - low_severity | bool
+  - medium_severity | bool
   - mount_option_dev_shm_nosuid | bool
   - no_reboot_needed | bool
   - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
@@ -24570,11 +24767,11 @@
   - configure_strategy
   - high_disruption
   - low_complexity
-  - low_severity
+  - medium_severity
   - mount_option_dev_shm_nosuid
   - no_reboot_needed
 
-- name: If /dev/shm not mounted, craft mount_info manually
+- name: 'Add nosuid Option to /dev/shm: If /dev/shm not mounted, craft mount_info manually'
   set_fact:
     mount_info: '{{ mount_info|default({})|combine({item.0: item.1}) }}'
   with_together:
@@ -24590,7 +24787,7 @@
   - configure_strategy | bool
   - high_disruption | bool
   - low_complexity | bool
-  - low_severity | bool
+  - medium_severity | bool
   - mount_option_dev_shm_nosuid | bool
   - no_reboot_needed | bool
   - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
@@ -24608,18 +24805,18 @@
   - configure_strategy
   - high_disruption
   - low_complexity
-  - low_severity
+  - medium_severity
   - mount_option_dev_shm_nosuid
   - no_reboot_needed
 
-- name: Make sure nosuid option is part of the to /dev/shm options
+- name: 'Add nosuid Option to /dev/shm: Make sure nosuid option is part of the to /dev/shm options'
   set_fact:
     mount_info: '{{ mount_info | combine( {''options'':''''~mount_info.options~'',nosuid'' }) }}'
   when:
   - configure_strategy | bool
   - high_disruption | bool
   - low_complexity | bool
-  - low_severity | bool
+  - medium_severity | bool
   - mount_option_dev_shm_nosuid | bool
   - no_reboot_needed | bool
   - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
@@ -24636,11 +24833,11 @@
   - configure_strategy
   - high_disruption
   - low_complexity
-  - low_severity
+  - medium_severity
   - mount_option_dev_shm_nosuid
   - no_reboot_needed
 
-- name: Ensure /dev/shm is mounted with nosuid option
+- name: 'Add nosuid Option to /dev/shm: Ensure /dev/shm is mounted with nosuid option'
   mount:
     path: /dev/shm
     src: '{{ mount_info.source }}'
@@ -24651,7 +24848,7 @@
   - configure_strategy | bool
   - high_disruption | bool
   - low_complexity | bool
-  - low_severity | bool
+  - medium_severity | bool
   - mount_option_dev_shm_nosuid | bool
   - no_reboot_needed | bool
   - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
@@ -24668,11 +24865,11 @@
   - configure_strategy
   - high_disruption
   - low_complexity
-  - low_severity
+  - medium_severity
   - mount_option_dev_shm_nosuid
   - no_reboot_needed
 
-- name: Check information associated to mountpoint
+- name: 'Add nosuid Option to /home: Check information associated to mountpoint'
   command: findmnt --fstab '/home'
   register: device_name
   failed_when: device_name.rc > 1
@@ -24701,7 +24898,7 @@
   - mount_option_home_nosuid
   - no_reboot_needed
 
-- name: Create mount_info dictionary variable
+- name: 'Add nosuid Option to /home: Create mount_info dictionary variable'
   set_fact:
     mount_info: '{{ mount_info|default({})|combine({item.0: item.1}) }}'
   with_together:
@@ -24733,7 +24930,7 @@
   - mount_option_home_nosuid
   - no_reboot_needed
 
-- name: If /home not mounted, craft mount_info manually
+- name: 'Add nosuid Option to /home: If /home not mounted, craft mount_info manually'
   set_fact:
     mount_info: '{{ mount_info|default({})|combine({item.0: item.1}) }}'
   with_together:
@@ -24771,7 +24968,7 @@
   - mount_option_home_nosuid
   - no_reboot_needed
 
-- name: Make sure nosuid option is part of the to /home options
+- name: 'Add nosuid Option to /home: Make sure nosuid option is part of the to /home options'
   set_fact:
     mount_info: '{{ mount_info | combine( {''options'':''''~mount_info.options~'',nosuid'' }) }}'
   when:
@@ -24799,7 +24996,7 @@
   - mount_option_home_nosuid
   - no_reboot_needed
 
-- name: Ensure /home is mounted with nosuid option
+- name: 'Add nosuid Option to /home: Ensure /home is mounted with nosuid option'
   mount:
     path: /home
     src: '{{ mount_info.source }}'
@@ -25090,15 +25287,13 @@
 
 - name: Disable service kdump
   block:
-  - name: Gather the service facts
-    service_facts: null
   - name: Disable service kdump
     systemd:
       name: kdump.service
       enabled: 'no'
       state: stopped
       masked: 'yes'
-    when: '"kdump.service" in ansible_facts.services'
+    ignore_errors: 'yes'
   when:
   - disable_strategy | bool
   - low_complexity | bool
@@ -25518,7 +25713,7 @@
   - no_reboot_needed | bool
   - restrict_strategy | bool
   - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
-  - '"chrony" in ansible_facts.packages or "ntp" in ansible_facts.packages'
+  - ( "chrony" in ansible_facts.packages or "ntp" in ansible_facts.packages )
   tags:
   - CCE-80439-3
   - DISA-STIG-RHEL-07-040500
@@ -25543,7 +25738,7 @@
   - no_reboot_needed | bool
   - restrict_strategy | bool
   - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
-  - '"chrony" in ansible_facts.packages or "ntp" in ansible_facts.packages'
+  - ( "chrony" in ansible_facts.packages or "ntp" in ansible_facts.packages )
   tags:
   - CCE-80439-3
   - DISA-STIG-RHEL-07-040500
@@ -25557,11 +25752,10 @@
   - restrict_strategy
 
 - name: Update the maxpoll values in /etc/ntp.conf
-  lineinfile:
+  replace:
     path: /etc/ntp.conf
-    regex: ^(server.*maxpoll) [0-9]+(\s+.*)$
-    line: \1 {{ var_time_service_set_maxpoll }}\2
-    backrefs: true
+    regexp: ^(server.*maxpoll)[ ]+[0-9]+(.*)$
+    replace: \1 {{ var_time_service_set_maxpoll }}\2
   when:
   - chronyd_or_ntpd_set_maxpoll | bool
   - low_complexity | bool
@@ -25570,7 +25764,7 @@
   - no_reboot_needed | bool
   - restrict_strategy | bool
   - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
-  - '"chrony" in ansible_facts.packages or "ntp" in ansible_facts.packages'
+  - ( "chrony" in ansible_facts.packages or "ntp" in ansible_facts.packages )
   - ntp_conf_exist_result.stat.exists
   tags:
   - CCE-80439-3
@@ -25585,11 +25779,10 @@
   - restrict_strategy
 
 - name: Update the maxpoll values in /etc/chrony.conf
-  lineinfile:
+  replace:
     path: /etc/chrony.conf
-    regex: ^((?:server|pool).*maxpoll) [0-9]+(\s+.*)$
-    line: \1 {{ var_time_service_set_maxpoll }}\2
-    backrefs: true
+    regexp: ^((?:server|pool|peer).*maxpoll)[ ]+[0-9]+(.*)$
+    replace: \1 {{ var_time_service_set_maxpoll }}\2
   when:
   - chronyd_or_ntpd_set_maxpoll | bool
   - low_complexity | bool
@@ -25598,7 +25791,7 @@
   - no_reboot_needed | bool
   - restrict_strategy | bool
   - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
-  - '"chrony" in ansible_facts.packages or "ntp" in ansible_facts.packages'
+  - ( "chrony" in ansible_facts.packages or "ntp" in ansible_facts.packages )
   - chrony_conf_exist_result.stat.exists
   tags:
   - CCE-80439-3
@@ -25613,11 +25806,10 @@
   - restrict_strategy
 
 - name: Set the maxpoll values in /etc/ntp.conf
-  lineinfile:
+  replace:
     path: /etc/ntp.conf
-    regex: (^server\s+((?!maxpoll).)*)$
-    line: \1 maxpoll {{ var_time_service_set_maxpoll }}\n
-    backrefs: true
+    regexp: (^server\s+((?!maxpoll).)*)$
+    replace: \1 maxpoll {{ var_time_service_set_maxpoll }}\n
   when:
   - chronyd_or_ntpd_set_maxpoll | bool
   - low_complexity | bool
@@ -25626,7 +25818,7 @@
   - no_reboot_needed | bool
   - restrict_strategy | bool
   - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
-  - '"chrony" in ansible_facts.packages or "ntp" in ansible_facts.packages'
+  - ( "chrony" in ansible_facts.packages or "ntp" in ansible_facts.packages )
   - ntp_conf_exist_result.stat.exists
   tags:
   - CCE-80439-3
@@ -25641,11 +25833,10 @@
   - restrict_strategy
 
 - name: Set the maxpoll values in /etc/chrony.conf
-  lineinfile:
+  replace:
     path: /etc/chrony.conf
-    regex: (^(?:server|pool)\s+((?!maxpoll).)*)$
-    line: \1 maxpoll {{ var_time_service_set_maxpoll }}\n
-    backrefs: true
+    regexp: (^(?:server|pool|peer)\s+((?!maxpoll).)*)$
+    replace: \1 maxpoll {{ var_time_service_set_maxpoll }}\n
   when:
   - chronyd_or_ntpd_set_maxpoll | bool
   - low_complexity | bool
@@ -25654,7 +25845,7 @@
   - no_reboot_needed | bool
   - restrict_strategy | bool
   - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
-  - '"chrony" in ansible_facts.packages or "ntp" in ansible_facts.packages'
+  - ( "chrony" in ansible_facts.packages or "ntp" in ansible_facts.packages )
   - chrony_conf_exist_result.stat.exists
   tags:
   - CCE-80439-3
@@ -26001,11 +26192,11 @@
   - service_sshd_enabled
 
 - name: Find /etc/ssh/ file(s)
-  find:
-    paths: /etc/ssh/
-    patterns: ^.*_key$
-    use_regex: true
+  command: find -H /etc/ssh/ -maxdepth 1 -perm /u+xs,g+xwrs,o+xwrt -type f -regex "^.*_key$"
   register: files_found
+  changed_when: false
+  failed_when: false
+  check_mode: false
   when:
   - configure_strategy | bool
   - file_permissions_sshd_private_key | bool
@@ -26031,10 +26222,11 @@
 
 - name: Set permissions for /etc/ssh/ file(s)
   file:
-    path: '{{ item.path }}'
-    mode: '0600'
+    path: '{{ item }}'
+    mode: u-xs,g-xwrs,o-xwrt
+    state: file
   with_items:
-  - '{{ files_found.files }}'
+  - '{{ files_found.stdout_lines }}'
   when:
   - configure_strategy | bool
   - file_permissions_sshd_private_key | bool
@@ -26059,11 +26251,11 @@
   - no_reboot_needed
 
 - name: Find /etc/ssh/ file(s)
-  find:
-    paths: /etc/ssh/
-    patterns: ^.*.pub$
-    use_regex: true
+  command: find -H /etc/ssh/ -maxdepth 1 -perm /u+xs,g+xws,o+xwt -type f -regex "^.*.pub$"
   register: files_found
+  changed_when: false
+  failed_when: false
+  check_mode: false
   when:
   - configure_strategy | bool
   - file_permissions_sshd_pub_key | bool
@@ -26089,10 +26281,11 @@
 
 - name: Set permissions for /etc/ssh/ file(s)
   file:
-    path: '{{ item.path }}'
-    mode: '0644'
+    path: '{{ item }}'
+    mode: u-xs,g-xws,o-xwt
+    state: file
   with_items:
-  - '{{ files_found.files }}'
+  - '{{ files_found.stdout_lines }}'
   when:
   - configure_strategy | bool
   - file_permissions_sshd_pub_key | bool
@@ -26115,6 +26308,114 @@
   - low_disruption
   - medium_severity
   - no_reboot_needed
+
+- name: Set SSH Client Alive Count Max to zero
+  block:
+  - name: Check for duplicate values
+    lineinfile:
+      path: /etc/ssh/sshd_config
+      create: false
+      regexp: (?i)^\s*ClientAliveCountMax\s+
+      state: absent
+    check_mode: true
+    changed_when: false
+    register: dupes
+  - name: Deduplicate values from /etc/ssh/sshd_config
+    lineinfile:
+      path: /etc/ssh/sshd_config
+      create: false
+      regexp: (?i)^\s*ClientAliveCountMax\s+
+      state: absent
+    when: dupes.found is defined and dupes.found > 1
+  - name: Insert correct line to /etc/ssh/sshd_config
+    lineinfile:
+      path: /etc/ssh/sshd_config
+      create: true
+      regexp: (?i)^\s*ClientAliveCountMax\s+
+      line: ClientAliveCountMax 0
+      state: present
+      insertbefore: ^[#\s]*Match
+      validate: /usr/sbin/sshd -t -f %s
+  when:
+  - low_complexity | bool
+  - low_disruption | bool
+  - medium_severity | bool
+  - no_reboot_needed | bool
+  - restrict_strategy | bool
+  - sshd_set_keepalive_0 | bool
+  - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
+  tags:
+  - CCE-83399-6
+  - CJIS-5.5.6
+  - DISA-STIG-RHEL-07-040340
+  - NIST-800-171-3.1.11
+  - NIST-800-53-AC-12
+  - NIST-800-53-AC-17(a)
+  - NIST-800-53-AC-2(5)
+  - NIST-800-53-CM-6(a)
+  - NIST-800-53-SC-10
+  - PCI-DSS-Req-8.1.8
+  - low_complexity
+  - low_disruption
+  - medium_severity
+  - no_reboot_needed
+  - restrict_strategy
+  - sshd_set_keepalive_0
+
+- name: Set SSH Idle Timeout Interval
+  block:
+  - name: Check for duplicate values
+    lineinfile:
+      path: /etc/ssh/sshd_config
+      create: false
+      regexp: (?i)^\s*ClientAliveInterval\s+
+      state: absent
+    check_mode: true
+    changed_when: false
+    register: dupes
+  - name: Deduplicate values from /etc/ssh/sshd_config
+    lineinfile:
+      path: /etc/ssh/sshd_config
+      create: false
+      regexp: (?i)^\s*ClientAliveInterval\s+
+      state: absent
+    when: dupes.found is defined and dupes.found > 1
+  - name: Insert correct line to /etc/ssh/sshd_config
+    lineinfile:
+      path: /etc/ssh/sshd_config
+      create: true
+      regexp: (?i)^\s*ClientAliveInterval\s+
+      line: ClientAliveInterval {{ sshd_idle_timeout_value }}
+      state: present
+      insertbefore: ^[#\s]*Match
+      validate: /usr/sbin/sshd -t -f %s
+  when:
+  - low_complexity | bool
+  - low_disruption | bool
+  - medium_severity | bool
+  - no_reboot_needed | bool
+  - restrict_strategy | bool
+  - sshd_set_idle_timeout | bool
+  - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
+  tags:
+  - CCE-27433-2
+  - CJIS-5.5.6
+  - DISA-STIG-RHEL-07-040320
+  - NIST-800-171-3.1.11
+  - NIST-800-53-AC-12
+  - NIST-800-53-AC-17(a)
+  - NIST-800-53-AC-17(a)
+  - NIST-800-53-AC-2(5)
+  - NIST-800-53-CM-6(a)
+  - NIST-800-53-CM-6(a)
+  - NIST-800-53-SC-10
+  - PCI-DSS-Req-8.1.8
+  - low_complexity
+  - low_disruption
+  - medium_severity
+  - no_reboot_needed
+  - restrict_strategy
+  - sshd_set_idle_timeout
 
 - name: Disable Host-Based Authentication
   block:
@@ -26875,114 +27176,6 @@
   - restrict_strategy
   - sshd_print_last_log
 
-- name: Set SSH Idle Timeout Interval
-  block:
-  - name: Check for duplicate values
-    lineinfile:
-      path: /etc/ssh/sshd_config
-      create: false
-      regexp: (?i)^\s*ClientAliveInterval\s+
-      state: absent
-    check_mode: true
-    changed_when: false
-    register: dupes
-  - name: Deduplicate values from /etc/ssh/sshd_config
-    lineinfile:
-      path: /etc/ssh/sshd_config
-      create: false
-      regexp: (?i)^\s*ClientAliveInterval\s+
-      state: absent
-    when: dupes.found is defined and dupes.found > 1
-  - name: Insert correct line to /etc/ssh/sshd_config
-    lineinfile:
-      path: /etc/ssh/sshd_config
-      create: true
-      regexp: (?i)^\s*ClientAliveInterval\s+
-      line: ClientAliveInterval {{ sshd_idle_timeout_value }}
-      state: present
-      insertbefore: ^[#\s]*Match
-      validate: /usr/sbin/sshd -t -f %s
-  when:
-  - low_complexity | bool
-  - low_disruption | bool
-  - medium_severity | bool
-  - no_reboot_needed | bool
-  - restrict_strategy | bool
-  - sshd_set_idle_timeout | bool
-  - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
-  tags:
-  - CCE-27433-2
-  - CJIS-5.5.6
-  - DISA-STIG-RHEL-07-040320
-  - NIST-800-171-3.1.11
-  - NIST-800-53-AC-12
-  - NIST-800-53-AC-17(a)
-  - NIST-800-53-AC-17(a)
-  - NIST-800-53-AC-2(5)
-  - NIST-800-53-CM-6(a)
-  - NIST-800-53-CM-6(a)
-  - NIST-800-53-SC-10
-  - PCI-DSS-Req-8.1.8
-  - low_complexity
-  - low_disruption
-  - medium_severity
-  - no_reboot_needed
-  - restrict_strategy
-  - sshd_set_idle_timeout
-
-- name: Set SSH Client Alive Count Max to zero
-  block:
-  - name: Check for duplicate values
-    lineinfile:
-      path: /etc/ssh/sshd_config
-      create: false
-      regexp: (?i)^\s*ClientAliveCountMax\s+
-      state: absent
-    check_mode: true
-    changed_when: false
-    register: dupes
-  - name: Deduplicate values from /etc/ssh/sshd_config
-    lineinfile:
-      path: /etc/ssh/sshd_config
-      create: false
-      regexp: (?i)^\s*ClientAliveCountMax\s+
-      state: absent
-    when: dupes.found is defined and dupes.found > 1
-  - name: Insert correct line to /etc/ssh/sshd_config
-    lineinfile:
-      path: /etc/ssh/sshd_config
-      create: true
-      regexp: (?i)^\s*ClientAliveCountMax\s+
-      line: ClientAliveCountMax 0
-      state: present
-      insertbefore: ^[#\s]*Match
-      validate: /usr/sbin/sshd -t -f %s
-  when:
-  - low_complexity | bool
-  - low_disruption | bool
-  - medium_severity | bool
-  - no_reboot_needed | bool
-  - restrict_strategy | bool
-  - sshd_set_keepalive_0 | bool
-  - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
-  tags:
-  - CCE-83399-6
-  - CJIS-5.5.6
-  - DISA-STIG-RHEL-07-040340
-  - NIST-800-171-3.1.11
-  - NIST-800-53-AC-12
-  - NIST-800-53-AC-17(a)
-  - NIST-800-53-AC-2(5)
-  - NIST-800-53-CM-6(a)
-  - NIST-800-53-SC-10
-  - PCI-DSS-Req-8.1.8
-  - low_complexity
-  - low_disruption
-  - medium_severity
-  - no_reboot_needed
-  - restrict_strategy
-  - sshd_set_keepalive_0
-
 - name: Configure sshd to use approved ciphers
   lineinfile:
     path: /etc/ssh/sshd_config
@@ -27499,30 +27692,6 @@
     - xorg-x11-server-common
     - xorg-x11-server-utils
     state: absent
-  tags:
-  - CCE-83410-1
-  - DISA-STIG-RHEL-07-040730
-  - NIST-800-53-CM-6(b)
-  - low_complexity
-  - low_disruption
-  - medium_severity
-  - reboot_required
-  - restrict_strategy
-  - xwindows_remove_packages
-  when:
-  - low_complexity | bool
-  - low_disruption | bool
-  - medium_severity | bool
-  - reboot_required | bool
-  - restrict_strategy | bool
-  - xwindows_remove_packages | bool
-
-- name: Switch to multi-user runlevel
-  file:
-    src: /usr/lib/systemd/system/multi-user.target
-    dest: /etc/systemd/system/default.target
-    state: link
-    force: true
   tags:
   - CCE-83410-1
   - DISA-STIG-RHEL-07-040730
