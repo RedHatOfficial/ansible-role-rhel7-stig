@@ -1310,6 +1310,7 @@
     manager: auto
   tags:
   - CCE-80122-5
+  - DISA-STIG-RHEL-07-020111
   - NIST-800-171-3.1.7
   - NIST-800-53-CM-6(a)
   - NIST-800-53-CM-7(a)
@@ -1317,15 +1318,15 @@
   - dconf_gnome_disable_automount
   - low_complexity
   - medium_disruption
+  - medium_severity
   - no_reboot_needed
-  - unknown_severity
   - unknown_strategy
   when:
   - dconf_gnome_disable_automount | bool
   - low_complexity | bool
   - medium_disruption | bool
+  - medium_severity | bool
   - no_reboot_needed | bool
-  - unknown_severity | bool
   - unknown_strategy | bool
 
 - name: Disable GNOME3 Automounting - automount
@@ -1340,13 +1341,14 @@
   - dconf_gnome_disable_automount | bool
   - low_complexity | bool
   - medium_disruption | bool
+  - medium_severity | bool
   - no_reboot_needed | bool
-  - unknown_severity | bool
   - unknown_strategy | bool
   - '"gdm" in ansible_facts.packages'
   - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
   tags:
   - CCE-80122-5
+  - DISA-STIG-RHEL-07-020111
   - NIST-800-171-3.1.7
   - NIST-800-53-CM-6(a)
   - NIST-800-53-CM-7(a)
@@ -1354,8 +1356,8 @@
   - dconf_gnome_disable_automount
   - low_complexity
   - medium_disruption
+  - medium_severity
   - no_reboot_needed
-  - unknown_severity
   - unknown_strategy
 
 - name: Prevent user modification of GNOME3 Automounting - automount
@@ -1368,13 +1370,14 @@
   - dconf_gnome_disable_automount | bool
   - low_complexity | bool
   - medium_disruption | bool
+  - medium_severity | bool
   - no_reboot_needed | bool
-  - unknown_severity | bool
   - unknown_strategy | bool
   - '"gdm" in ansible_facts.packages'
   - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
   tags:
   - CCE-80122-5
+  - DISA-STIG-RHEL-07-020111
   - NIST-800-171-3.1.7
   - NIST-800-53-CM-6(a)
   - NIST-800-53-CM-7(a)
@@ -1382,8 +1385,8 @@
   - dconf_gnome_disable_automount
   - low_complexity
   - medium_disruption
+  - medium_severity
   - no_reboot_needed
-  - unknown_severity
   - unknown_strategy
 
 - name: Dconf Update
@@ -1392,13 +1395,14 @@
   - dconf_gnome_disable_automount | bool
   - low_complexity | bool
   - medium_disruption | bool
+  - medium_severity | bool
   - no_reboot_needed | bool
-  - unknown_severity | bool
   - unknown_strategy | bool
   - '"gdm" in ansible_facts.packages'
   - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
   tags:
   - CCE-80122-5
+  - DISA-STIG-RHEL-07-020111
   - NIST-800-171-3.1.7
   - NIST-800-53-CM-6(a)
   - NIST-800-53-CM-7(a)
@@ -1406,8 +1410,8 @@
   - dconf_gnome_disable_automount
   - low_complexity
   - medium_disruption
+  - medium_severity
   - no_reboot_needed
-  - unknown_severity
   - unknown_strategy
 
 - name: Gather the package facts
@@ -1415,6 +1419,7 @@
     manager: auto
   tags:
   - CCE-83692-4
+  - DISA-STIG-RHEL-07-020111
   - NIST-800-171-3.1.7
   - NIST-800-53-CM-6(a)
   - NIST-800-53-CM-7(a)
@@ -1452,6 +1457,7 @@
   - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
   tags:
   - CCE-83692-4
+  - DISA-STIG-RHEL-07-020111
   - NIST-800-171-3.1.7
   - NIST-800-53-CM-6(a)
   - NIST-800-53-CM-7(a)
@@ -1480,6 +1486,7 @@
   - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
   tags:
   - CCE-83692-4
+  - DISA-STIG-RHEL-07-020111
   - NIST-800-171-3.1.7
   - NIST-800-53-CM-6(a)
   - NIST-800-53-CM-7(a)
@@ -1504,6 +1511,7 @@
   - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
   tags:
   - CCE-83692-4
+  - DISA-STIG-RHEL-07-020111
   - NIST-800-171-3.1.7
   - NIST-800-53-CM-6(a)
   - NIST-800-53-CM-7(a)
@@ -1520,6 +1528,7 @@
     manager: auto
   tags:
   - CCE-83741-9
+  - DISA-STIG-RHEL-07-020111
   - NIST-800-171-3.1.7
   - NIST-800-53-CM-6(a)
   - NIST-800-53-CM-7(a)
@@ -1557,6 +1566,7 @@
   - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
   tags:
   - CCE-83741-9
+  - DISA-STIG-RHEL-07-020111
   - NIST-800-171-3.1.7
   - NIST-800-53-CM-6(a)
   - NIST-800-53-CM-7(a)
@@ -1585,6 +1595,7 @@
   - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
   tags:
   - CCE-83741-9
+  - DISA-STIG-RHEL-07-020111
   - NIST-800-171-3.1.7
   - NIST-800-53-CM-6(a)
   - NIST-800-53-CM-7(a)
@@ -1609,6 +1620,7 @@
   - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
   tags:
   - CCE-83741-9
+  - DISA-STIG-RHEL-07-020111
   - NIST-800-171-3.1.7
   - NIST-800-53-CM-6(a)
   - NIST-800-53-CM-7(a)
@@ -1866,36 +1878,6 @@
   - no_reboot_needed
   - unknown_strategy
 
-- name: Prevent user modification of GNOME idle-delay
-  lineinfile:
-    path: /etc/dconf/db/local.d/locks/00-security-settings-lock
-    regexp: ^/org/gnome/desktop/session/idle-delay$
-    line: /org/gnome/desktop/session/idle-delay
-    create: true
-  when:
-  - dconf_gnome_screensaver_idle_delay | bool
-  - low_complexity | bool
-  - medium_disruption | bool
-  - medium_severity | bool
-  - no_reboot_needed | bool
-  - unknown_strategy | bool
-  - '"gdm" in ansible_facts.packages'
-  - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
-  tags:
-  - CCE-80110-0
-  - CJIS-5.5.5
-  - DISA-STIG-RHEL-07-010070
-  - NIST-800-171-3.1.10
-  - NIST-800-53-AC-11(a)
-  - NIST-800-53-CM-6(a)
-  - PCI-DSS-Req-8.1.8
-  - dconf_gnome_screensaver_idle_delay
-  - low_complexity
-  - medium_disruption
-  - medium_severity
-  - no_reboot_needed
-  - unknown_strategy
-
 - name: Dconf Update
   command: dconf update
   when:
@@ -1951,38 +1933,9 @@
     dest: /etc/dconf/db/local.d/00-security-settings
     section: org/gnome/desktop/screensaver
     option: lock-delay
-    value: uint32 5
+    value: uint32 {{ var_screensaver_lock_delay }}
     create: true
     no_extra_spaces: true
-  when:
-  - dconf_gnome_screensaver_lock_delay | bool
-  - low_complexity | bool
-  - medium_disruption | bool
-  - medium_severity | bool
-  - no_reboot_needed | bool
-  - unknown_strategy | bool
-  - '"gdm" in ansible_facts.packages'
-  - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
-  tags:
-  - CCE-80370-0
-  - DISA-STIG-RHEL-07-010110
-  - NIST-800-171-3.1.10
-  - NIST-800-53-AC-11(a)
-  - NIST-800-53-CM-6(a)
-  - PCI-DSS-Req-8.1.8
-  - dconf_gnome_screensaver_lock_delay
-  - low_complexity
-  - medium_disruption
-  - medium_severity
-  - no_reboot_needed
-  - unknown_strategy
-
-- name: Prevent user modification of GNOME lock-delay
-  lineinfile:
-    path: /etc/dconf/db/local.d/locks/00-security-settings-lock
-    regexp: ^/org/gnome/desktop/screensaver/lock-delay$
-    line: /org/gnome/desktop/screensaver/lock-delay
-    create: true
   when:
   - dconf_gnome_screensaver_lock_delay | bool
   - low_complexity | bool
@@ -2870,7 +2823,7 @@
   - no_reboot_needed | bool
   - sudoers_default_includedir | bool
 
-- name: Remove found occurrences of file and directory inclues from /etc/sudoers.d/* files
+- name: Remove found occurrences of file and directory includes from /etc/sudoers.d/* files
   lineinfile:
     path: '{{ item.path }}'
     regexp: ^#include(dir)?\s.*$
@@ -7621,7 +7574,7 @@
   - no_reboot_needed | bool
   - restrict_strategy | bool
 
-- name: Test for existence home directories to avoid creating them, but only fixing group ownership
+- name: Test for existence home directories to avoid creating them.
   ansible.builtin.stat:
     path: '{{ item.value[4] }}'
   register: path_exists
@@ -7633,8 +7586,8 @@
   - medium_severity | bool
   - no_reboot_needed | bool
   - restrict_strategy | bool
-  - item.value[2]|int >= 1000
-  - item.value[2]|int != 65534
+  - item.value[1]|int >= 1000
+  - item.value[1]|int != 65534
   tags:
   - CCE-80535-8
   - DISA-STIG-RHEL-07-020680
@@ -7645,10 +7598,10 @@
   - no_reboot_needed
   - restrict_strategy
 
-- name: Ensure interactive local users are the group-owners of their respective home directories
+- name: Ensure interactive local users have proper permissions on their respective home directories
   ansible.builtin.file:
     path: '{{ item.0.value[4] }}'
-    mode: g-w,o=-
+    mode: u-s,g-w-s,o=-
     follow: false
     recurse: true
   loop: '{{ local_users|zip(path_exists.results)|list }}'
@@ -7887,7 +7840,7 @@
   - no_reboot_needed | bool
   - restrict_strategy | bool
 
-- name: Test for existence home directories to avoid creating them, but only fixing group ownership
+- name: Test for existence home directories to avoid creating them.
   ansible.builtin.stat:
     path: '{{ item.value[4] }}'
   register: path_exists
@@ -7899,8 +7852,8 @@
   - medium_severity | bool
   - no_reboot_needed | bool
   - restrict_strategy | bool
-  - item.value[2]|int >= 1000
-  - item.value[2]|int != 65534
+  - item.value[1]|int >= 1000
+  - item.value[1]|int != 65534
   tags:
   - CCE-80530-9
   - DISA-STIG-RHEL-07-020630
@@ -7911,10 +7864,12 @@
   - no_reboot_needed
   - restrict_strategy
 
-- name: Ensure interactive local users are the group-owners of their respective home directories
+- name: Ensure interactive local users have proper permissions on their respective home directories
   ansible.builtin.file:
     path: '{{ item.0.value[4] }}'
     mode: u-s,g-w-s,o=-
+    follow: false
+    recurse: false
   loop: '{{ local_users|zip(path_exists.results)|list }}'
   when:
   - file_permissions_home_directories | bool
@@ -23237,9 +23192,12 @@
 
 - name: List /etc/sysctl.d/*.conf files
   find:
-    paths: /etc/sysctl.d/
+    paths:
+    - /etc/sysctl.d/
+    - /run/sysctl.d/
     contains: ^[\s]*net.ipv6.conf.all.accept_source_route.*$
     patterns: '*.conf'
+    file_type: any
   register: find_sysctl_d
   when:
   - disable_strategy | bool
@@ -23265,7 +23223,7 @@
 
 - name: Comment out any occurrences of net.ipv6.conf.all.accept_source_route from /etc/sysctl.d/*.conf files
   replace:
-    path: '{{ item }}'
+    path: '{{ item.path }}'
     regexp: ^[\s]*net.ipv6.conf.all.accept_source_route
     replace: '#net.ipv6.conf.all.accept_source_route'
   loop: '{{ find_sysctl_d.files }}'
@@ -23321,9 +23279,12 @@
 
 - name: List /etc/sysctl.d/*.conf files
   find:
-    paths: /etc/sysctl.d/
+    paths:
+    - /etc/sysctl.d/
+    - /run/sysctl.d/
     contains: ^[\s]*net.ipv4.conf.all.accept_redirects.*$
     patterns: '*.conf'
+    file_type: any
   register: find_sysctl_d
   when:
   - disable_strategy | bool
@@ -23351,7 +23312,7 @@
 
 - name: Comment out any occurrences of net.ipv4.conf.all.accept_redirects from /etc/sysctl.d/*.conf files
   replace:
-    path: '{{ item }}'
+    path: '{{ item.path }}'
     regexp: ^[\s]*net.ipv4.conf.all.accept_redirects
     replace: '#net.ipv4.conf.all.accept_redirects'
   loop: '{{ find_sysctl_d.files }}'
@@ -23411,9 +23372,12 @@
 
 - name: List /etc/sysctl.d/*.conf files
   find:
-    paths: /etc/sysctl.d/
+    paths:
+    - /etc/sysctl.d/
+    - /run/sysctl.d/
     contains: ^[\s]*net.ipv4.conf.all.accept_source_route.*$
     patterns: '*.conf'
+    file_type: any
   register: find_sysctl_d
   when:
   - disable_strategy | bool
@@ -23441,7 +23405,7 @@
 
 - name: Comment out any occurrences of net.ipv4.conf.all.accept_source_route from /etc/sysctl.d/*.conf files
   replace:
-    path: '{{ item }}'
+    path: '{{ item.path }}'
     regexp: ^[\s]*net.ipv4.conf.all.accept_source_route
     replace: '#net.ipv4.conf.all.accept_source_route'
   loop: '{{ find_sysctl_d.files }}'
@@ -23501,9 +23465,12 @@
 
 - name: List /etc/sysctl.d/*.conf files
   find:
-    paths: /etc/sysctl.d/
+    paths:
+    - /etc/sysctl.d/
+    - /run/sysctl.d/
     contains: ^[\s]*net.ipv4.conf.all.rp_filter.*$
     patterns: '*.conf'
+    file_type: any
   register: find_sysctl_d
   when:
   - disable_strategy | bool
@@ -23530,7 +23497,7 @@
 
 - name: Comment out any occurrences of net.ipv4.conf.all.rp_filter from /etc/sysctl.d/*.conf files
   replace:
-    path: '{{ item }}'
+    path: '{{ item.path }}'
     regexp: ^[\s]*net.ipv4.conf.all.rp_filter
     replace: '#net.ipv4.conf.all.rp_filter'
   loop: '{{ find_sysctl_d.files }}'
@@ -23588,9 +23555,12 @@
 
 - name: List /etc/sysctl.d/*.conf files
   find:
-    paths: /etc/sysctl.d/
+    paths:
+    - /etc/sysctl.d/
+    - /run/sysctl.d/
     contains: ^[\s]*net.ipv4.conf.default.accept_redirects.*$
     patterns: '*.conf'
+    file_type: any
   register: find_sysctl_d
   when:
   - disable_strategy | bool
@@ -23618,7 +23588,7 @@
 
 - name: Comment out any occurrences of net.ipv4.conf.default.accept_redirects from /etc/sysctl.d/*.conf files
   replace:
-    path: '{{ item }}'
+    path: '{{ item.path }}'
     regexp: ^[\s]*net.ipv4.conf.default.accept_redirects
     replace: '#net.ipv4.conf.default.accept_redirects'
   loop: '{{ find_sysctl_d.files }}'
@@ -23678,9 +23648,12 @@
 
 - name: List /etc/sysctl.d/*.conf files
   find:
-    paths: /etc/sysctl.d/
+    paths:
+    - /etc/sysctl.d/
+    - /run/sysctl.d/
     contains: ^[\s]*net.ipv4.conf.default.accept_source_route.*$
     patterns: '*.conf'
+    file_type: any
   register: find_sysctl_d
   when:
   - disable_strategy | bool
@@ -23708,7 +23681,7 @@
 
 - name: Comment out any occurrences of net.ipv4.conf.default.accept_source_route from /etc/sysctl.d/*.conf files
   replace:
-    path: '{{ item }}'
+    path: '{{ item.path }}'
     regexp: ^[\s]*net.ipv4.conf.default.accept_source_route
     replace: '#net.ipv4.conf.default.accept_source_route'
   loop: '{{ find_sysctl_d.files }}'
@@ -23768,9 +23741,12 @@
 
 - name: List /etc/sysctl.d/*.conf files
   find:
-    paths: /etc/sysctl.d/
+    paths:
+    - /etc/sysctl.d/
+    - /run/sysctl.d/
     contains: ^[\s]*net.ipv4.conf.default.rp_filter.*$
     patterns: '*.conf'
+    file_type: any
   register: find_sysctl_d
   when:
   - disable_strategy | bool
@@ -23797,7 +23773,7 @@
 
 - name: Comment out any occurrences of net.ipv4.conf.default.rp_filter from /etc/sysctl.d/*.conf files
   replace:
-    path: '{{ item }}'
+    path: '{{ item.path }}'
     regexp: ^[\s]*net.ipv4.conf.default.rp_filter
     replace: '#net.ipv4.conf.default.rp_filter'
   loop: '{{ find_sysctl_d.files }}'
@@ -23855,9 +23831,12 @@
 
 - name: List /etc/sysctl.d/*.conf files
   find:
-    paths: /etc/sysctl.d/
+    paths:
+    - /etc/sysctl.d/
+    - /run/sysctl.d/
     contains: ^[\s]*net.ipv4.icmp_echo_ignore_broadcasts.*$
     patterns: '*.conf'
+    file_type: any
   register: find_sysctl_d
   when:
   - disable_strategy | bool
@@ -23884,7 +23863,7 @@
 
 - name: Comment out any occurrences of net.ipv4.icmp_echo_ignore_broadcasts from /etc/sysctl.d/*.conf files
   replace:
-    path: '{{ item }}'
+    path: '{{ item.path }}'
     regexp: ^[\s]*net.ipv4.icmp_echo_ignore_broadcasts
     replace: '#net.ipv4.icmp_echo_ignore_broadcasts'
   loop: '{{ find_sysctl_d.files }}'
@@ -23942,9 +23921,12 @@
 
 - name: List /etc/sysctl.d/*.conf files
   find:
-    paths: /etc/sysctl.d/
+    paths:
+    - /etc/sysctl.d/
+    - /run/sysctl.d/
     contains: ^[\s]*net.ipv4.conf.all.send_redirects.*$
     patterns: '*.conf'
+    file_type: any
   register: find_sysctl_d
   when:
   - disable_strategy | bool
@@ -23973,7 +23955,7 @@
 
 - name: Comment out any occurrences of net.ipv4.conf.all.send_redirects from /etc/sysctl.d/*.conf files
   replace:
-    path: '{{ item }}'
+    path: '{{ item.path }}'
     regexp: ^[\s]*net.ipv4.conf.all.send_redirects
     replace: '#net.ipv4.conf.all.send_redirects'
   loop: '{{ find_sysctl_d.files }}'
@@ -24035,9 +24017,12 @@
 
 - name: List /etc/sysctl.d/*.conf files
   find:
-    paths: /etc/sysctl.d/
+    paths:
+    - /etc/sysctl.d/
+    - /run/sysctl.d/
     contains: ^[\s]*net.ipv4.conf.default.send_redirects.*$
     patterns: '*.conf'
+    file_type: any
   register: find_sysctl_d
   when:
   - disable_strategy | bool
@@ -24066,7 +24051,7 @@
 
 - name: Comment out any occurrences of net.ipv4.conf.default.send_redirects from /etc/sysctl.d/*.conf files
   replace:
-    path: '{{ item }}'
+    path: '{{ item.path }}'
     regexp: ^[\s]*net.ipv4.conf.default.send_redirects
     replace: '#net.ipv4.conf.default.send_redirects'
   loop: '{{ find_sysctl_d.files }}'
@@ -24128,9 +24113,12 @@
 
 - name: List /etc/sysctl.d/*.conf files
   find:
-    paths: /etc/sysctl.d/
+    paths:
+    - /etc/sysctl.d/
+    - /run/sysctl.d/
     contains: ^[\s]*net.ipv4.ip_forward.*$
     patterns: '*.conf'
+    file_type: any
   register: find_sysctl_d
   when:
   - disable_strategy | bool
@@ -24158,7 +24146,7 @@
 
 - name: Comment out any occurrences of net.ipv4.ip_forward from /etc/sysctl.d/*.conf files
   replace:
-    path: '{{ item }}'
+    path: '{{ item.path }}'
     regexp: ^[\s]*net.ipv4.ip_forward
     replace: '#net.ipv4.ip_forward'
   loop: '{{ find_sysctl_d.files }}'
@@ -24407,7 +24395,7 @@
   - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
   tags:
   - CCE-80152-2
-  - DISA-STIG-RHEL-07-021022
+  - DISA-STIG-RHEL-07-021024
   - NIST-800-53-AC-6
   - NIST-800-53-AC-6(1)
   - NIST-800-53-CM-6(a)
@@ -24439,7 +24427,7 @@
   - (device_name.stdout | length > 0)
   tags:
   - CCE-80152-2
-  - DISA-STIG-RHEL-07-021022
+  - DISA-STIG-RHEL-07-021024
   - NIST-800-53-AC-6
   - NIST-800-53-AC-6(1)
   - NIST-800-53-CM-6(a)
@@ -24477,7 +24465,7 @@
   - (device_name.stdout | length == 0)
   tags:
   - CCE-80152-2
-  - DISA-STIG-RHEL-07-021022
+  - DISA-STIG-RHEL-07-021024
   - NIST-800-53-AC-6
   - NIST-800-53-AC-6(1)
   - NIST-800-53-CM-6(a)
@@ -24505,7 +24493,7 @@
   - mount_info is defined and "nodev" not in mount_info.options
   tags:
   - CCE-80152-2
-  - DISA-STIG-RHEL-07-021022
+  - DISA-STIG-RHEL-07-021024
   - NIST-800-53-AC-6
   - NIST-800-53-AC-6(1)
   - NIST-800-53-CM-6(a)
@@ -24537,7 +24525,7 @@
   - (device_name.stdout is defined and (device_name.stdout | length > 0)) or ("" | length == 0)
   tags:
   - CCE-80152-2
-  - DISA-STIG-RHEL-07-021022
+  - DISA-STIG-RHEL-07-021024
   - NIST-800-53-AC-6
   - NIST-800-53-AC-6(1)
   - NIST-800-53-CM-6(a)
@@ -24725,7 +24713,7 @@
   - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
   tags:
   - CCE-80154-8
-  - DISA-STIG-RHEL-07-021023
+  - DISA-STIG-RHEL-07-021024
   - NIST-800-53-AC-6
   - NIST-800-53-AC-6(1)
   - NIST-800-53-CM-6(a)
@@ -24757,7 +24745,7 @@
   - (device_name.stdout | length > 0)
   tags:
   - CCE-80154-8
-  - DISA-STIG-RHEL-07-021023
+  - DISA-STIG-RHEL-07-021024
   - NIST-800-53-AC-6
   - NIST-800-53-AC-6(1)
   - NIST-800-53-CM-6(a)
@@ -24795,7 +24783,7 @@
   - (device_name.stdout | length == 0)
   tags:
   - CCE-80154-8
-  - DISA-STIG-RHEL-07-021023
+  - DISA-STIG-RHEL-07-021024
   - NIST-800-53-AC-6
   - NIST-800-53-AC-6(1)
   - NIST-800-53-CM-6(a)
@@ -24823,7 +24811,7 @@
   - mount_info is defined and "nosuid" not in mount_info.options
   tags:
   - CCE-80154-8
-  - DISA-STIG-RHEL-07-021023
+  - DISA-STIG-RHEL-07-021024
   - NIST-800-53-AC-6
   - NIST-800-53-AC-6(1)
   - NIST-800-53-CM-6(a)
@@ -24855,7 +24843,7 @@
   - (device_name.stdout is defined and (device_name.stdout | length > 0)) or ("" | length == 0)
   tags:
   - CCE-80154-8
-  - DISA-STIG-RHEL-07-021023
+  - DISA-STIG-RHEL-07-021024
   - NIST-800-53-AC-6
   - NIST-800-53-AC-6(1)
   - NIST-800-53-CM-6(a)
@@ -25060,9 +25048,12 @@
 
 - name: List /etc/sysctl.d/*.conf files
   find:
-    paths: /etc/sysctl.d/
+    paths:
+    - /etc/sysctl.d/
+    - /run/sysctl.d/
     contains: ^[\s]*kernel.randomize_va_space.*$
     patterns: '*.conf'
+    file_type: any
   register: find_sysctl_d
   when:
   - disable_strategy | bool
@@ -25088,7 +25079,7 @@
 
 - name: Comment out any occurrences of kernel.randomize_va_space from /etc/sysctl.d/*.conf files
   replace:
-    path: '{{ item }}'
+    path: '{{ item.path }}'
     regexp: ^[\s]*kernel.randomize_va_space
     replace: '#kernel.randomize_va_space'
   loop: '{{ find_sysctl_d.files }}'
@@ -25685,6 +25676,7 @@
   tags:
   - CCE-80439-3
   - DISA-STIG-RHEL-07-040500
+  - NIST-800-53-AU-12(1)
   - NIST-800-53-AU-8(1)(b)
   - NIST-800-53-CM-6(a)
   - chronyd_or_ntpd_set_maxpoll
@@ -25717,6 +25709,7 @@
   tags:
   - CCE-80439-3
   - DISA-STIG-RHEL-07-040500
+  - NIST-800-53-AU-12(1)
   - NIST-800-53-AU-8(1)(b)
   - NIST-800-53-CM-6(a)
   - chronyd_or_ntpd_set_maxpoll
@@ -25742,6 +25735,7 @@
   tags:
   - CCE-80439-3
   - DISA-STIG-RHEL-07-040500
+  - NIST-800-53-AU-12(1)
   - NIST-800-53-AU-8(1)(b)
   - NIST-800-53-CM-6(a)
   - chronyd_or_ntpd_set_maxpoll
@@ -25769,6 +25763,7 @@
   tags:
   - CCE-80439-3
   - DISA-STIG-RHEL-07-040500
+  - NIST-800-53-AU-12(1)
   - NIST-800-53-AU-8(1)(b)
   - NIST-800-53-CM-6(a)
   - chronyd_or_ntpd_set_maxpoll
@@ -25796,6 +25791,7 @@
   tags:
   - CCE-80439-3
   - DISA-STIG-RHEL-07-040500
+  - NIST-800-53-AU-12(1)
   - NIST-800-53-AU-8(1)(b)
   - NIST-800-53-CM-6(a)
   - chronyd_or_ntpd_set_maxpoll
@@ -25823,6 +25819,7 @@
   tags:
   - CCE-80439-3
   - DISA-STIG-RHEL-07-040500
+  - NIST-800-53-AU-12(1)
   - NIST-800-53-AU-8(1)(b)
   - NIST-800-53-CM-6(a)
   - chronyd_or_ntpd_set_maxpoll
@@ -25850,6 +25847,7 @@
   tags:
   - CCE-80439-3
   - DISA-STIG-RHEL-07-040500
+  - NIST-800-53-AU-12(1)
   - NIST-800-53-AU-8(1)(b)
   - NIST-800-53-CM-6(a)
   - chronyd_or_ntpd_set_maxpoll
@@ -25954,12 +25952,9 @@
   - low_disruption | bool
   - no_reboot_needed | bool
 
-- name: Find out if the file exists and contains the line configuring server arguments
-  find:
-    path: /etc/xinetd.d
-    patterns: tftp
-    contains: ^[\s]+server_args.*$
-  register: tftpd_secure_config_line
+- name: Gather the package facts
+  package_facts:
+    manager: auto
   tags:
   - CCE-80214-0
   - DISA-STIG-RHEL-07-040720
@@ -25980,6 +25975,33 @@
   - no_reboot_needed | bool
   - tftpd_uses_secure_mode | bool
 
+- name: Find out if the file exists and contains the line configuring server arguments
+  find:
+    path: /etc/xinetd.d
+    patterns: tftp
+    contains: ^[\s]+server_args.*$
+  register: tftpd_secure_config_line
+  when:
+  - configure_strategy | bool
+  - low_complexity | bool
+  - low_disruption | bool
+  - medium_severity | bool
+  - no_reboot_needed | bool
+  - tftpd_uses_secure_mode | bool
+  - '"tftp-server" in ansible_facts.packages'
+  tags:
+  - CCE-80214-0
+  - DISA-STIG-RHEL-07-040720
+  - NIST-800-53-AC-6
+  - NIST-800-53-CM-6(b)
+  - NIST-800-53-CM-7(a)
+  - configure_strategy
+  - low_complexity
+  - low_disruption
+  - medium_severity
+  - no_reboot_needed
+  - tftpd_uses_secure_mode
+
 - name: Ensure that TFTP server is configured to start with secure directory
   lineinfile:
     path: /etc/xinetd.d/tftp
@@ -25994,6 +26016,7 @@
   - medium_severity | bool
   - no_reboot_needed | bool
   - tftpd_uses_secure_mode | bool
+  - '"tftp-server" in ansible_facts.packages'
   - tftpd_secure_config_line is defined and tftpd_secure_config_line.matched > 0
   tags:
   - CCE-80214-0
@@ -26021,6 +26044,7 @@
   - medium_severity | bool
   - no_reboot_needed | bool
   - tftpd_uses_secure_mode | bool
+  - '"tftp-server" in ansible_facts.packages'
   - tftpd_secure_config_line is defined and tftpd_secure_config_line.matched == 0
   tags:
   - CCE-80214-0
