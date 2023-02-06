@@ -28,6 +28,7 @@ var_accounts_fail_delay: '4'
 var_accounts_max_concurrent_login_sessions: '10'
 var_accounts_tmout: '900'
 var_accounts_user_umask: '077'
+var_audit_failure_mode: '2'
 var_audispd_remote_server: logcollector
 var_audispd_disk_full_action: single
 var_audispd_network_failure_action: single
@@ -66,6 +67,7 @@ DISA_STIG_RHEL_07_010062: true
 DISA_STIG_RHEL_07_010070: true
 DISA_STIG_RHEL_07_010081: true
 DISA_STIG_RHEL_07_010082: true
+DISA_STIG_RHEL_07_010090: true
 DISA_STIG_RHEL_07_010100: true
 DISA_STIG_RHEL_07_010101: true
 DISA_STIG_RHEL_07_010110: true
@@ -96,6 +98,7 @@ DISA_STIG_RHEL_07_010340: true
 DISA_STIG_RHEL_07_010342: true
 DISA_STIG_RHEL_07_010343: true
 DISA_STIG_RHEL_07_010350: true
+DISA_STIG_RHEL_07_010375: true
 DISA_STIG_RHEL_07_010430: true
 DISA_STIG_RHEL_07_010440: true
 DISA_STIG_RHEL_07_010450: true
@@ -145,6 +148,7 @@ DISA_STIG_RHEL_07_021350: true
 DISA_STIG_RHEL_07_021710: true
 DISA_STIG_RHEL_07_030000: true
 DISA_STIG_RHEL_07_030010: true
+DISA_STIG_RHEL_07_030201: true
 DISA_STIG_RHEL_07_030210: true
 DISA_STIG_RHEL_07_030211: true
 DISA_STIG_RHEL_07_030300: true
@@ -245,6 +249,7 @@ DISA_STIG_RHEL_07_040830: true
 DISA_STIG_RHEL_07_041001: true
 DISA_STIG_RHEL_07_041003: true
 DISA_STIG_RHEL_07_041010: true
+DISA_STIG_RHEL_07_910055: true
 account_disable_post_pw_expiration: true
 accounts_have_homedir_login_defs: true
 accounts_logon_fail_delay: true
@@ -278,6 +283,7 @@ accounts_user_interactive_home_directory_exists: true
 accounts_users_home_files_groupownership: true
 accounts_users_home_files_ownership: true
 accounts_users_home_files_permissions: true
+aide_build_database: true
 aide_periodic_cron_checking: true
 aide_scan_notification: true
 audit_rules_dac_modification_chmod: true
@@ -344,6 +350,10 @@ auditd_audispd_configure_remote_server: true
 auditd_audispd_disk_full_action: true
 auditd_audispd_encrypt_sent_records: true
 auditd_audispd_network_failure_action: true
+auditd_audispd_remote_daemon_activated: true
+auditd_audispd_remote_daemon_direction: true
+auditd_audispd_remote_daemon_path: true
+auditd_audispd_remote_daemon_type: true
 auditd_data_retention_action_mail_acct: true
 auditd_data_retention_space_left_action: true
 auditd_data_retention_space_left_percentage: true
@@ -382,6 +392,7 @@ file_ownership_home_directories: true
 file_permissions_home_directories: true
 file_permissions_sshd_private_key: true
 file_permissions_sshd_pub_key: true
+file_permissions_var_log_audit: true
 gnome_gdm_disable_automatic_login: true
 gnome_gdm_disable_guest_login: true
 grub2_enable_fips_mode: true
@@ -408,6 +419,7 @@ no_reboot_needed: true
 package_aide_installed: true
 package_openssh_server_installed: true
 package_rsh_server_removed: true
+package_screen_installed: true
 package_telnet_server_removed: true
 package_tftp_server_removed: true
 package_vsftpd_removed: true
@@ -465,6 +477,7 @@ sudo_remove_nopasswd: true
 sudo_require_reauthentication: true
 sudoers_default_includedir: true
 sudoers_validate_passwd: true
+sysctl_kernel_dmesg_restrict: true
 sysctl_kernel_randomize_va_space: true
 sysctl_net_ipv4_conf_all_accept_redirects: true
 sysctl_net_ipv4_conf_all_accept_source_route: true
