@@ -784,7 +784,8 @@
   - medium_disruption | bool
   - reboot_required | bool
   - restrict_strategy | bool
-  - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
+  - ( ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"] and not ( lookup("env", "container")
+    == "bwrap-osbuild" ) )
   - '"grub2-common" in ansible_facts.packages'
   tags:
   - CCE-80359-3
@@ -818,7 +819,8 @@
   - medium_disruption | bool
   - reboot_required | bool
   - restrict_strategy | bool
-  - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
+  - ( ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"] and not ( lookup("env", "container")
+    == "bwrap-osbuild" ) )
   - '"grub2-common" in ansible_facts.packages'
   - prelink_exists.stat.exists
   tags:
@@ -850,7 +852,8 @@
   - medium_disruption | bool
   - reboot_required | bool
   - restrict_strategy | bool
-  - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
+  - ( ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"] and not ( lookup("env", "container")
+    == "bwrap-osbuild" ) )
   - '"grub2-common" in ansible_facts.packages'
   - prelink_exists.stat.exists
   tags:
@@ -885,7 +888,8 @@
   - medium_disruption | bool
   - reboot_required | bool
   - restrict_strategy | bool
-  - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
+  - ( ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"] and not ( lookup("env", "container")
+    == "bwrap-osbuild" ) )
   - '"grub2-common" in ansible_facts.packages'
   tags:
   - CCE-80359-3
@@ -918,7 +922,8 @@
   - medium_disruption | bool
   - reboot_required | bool
   - restrict_strategy | bool
-  - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
+  - ( ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"] and not ( lookup("env", "container")
+    == "bwrap-osbuild" ) )
   - '"grub2-common" in ansible_facts.packages'
   - aesni_supported.rc == 0
   tags:
@@ -952,7 +957,8 @@
   - medium_disruption | bool
   - reboot_required | bool
   - restrict_strategy | bool
-  - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
+  - ( ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"] and not ( lookup("env", "container")
+    == "bwrap-osbuild" ) )
   - '"grub2-common" in ansible_facts.packages'
   tags:
   - CCE-80359-3
@@ -983,7 +989,8 @@
   - medium_disruption | bool
   - reboot_required | bool
   - restrict_strategy | bool
-  - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
+  - ( ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"] and not ( lookup("env", "container")
+    == "bwrap-osbuild" ) )
   - '"grub2-common" in ansible_facts.packages'
   tags:
   - CCE-80359-3
@@ -1017,7 +1024,8 @@
   - medium_disruption | bool
   - reboot_required | bool
   - restrict_strategy | bool
-  - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
+  - ( ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"] and not ( lookup("env", "container")
+    == "bwrap-osbuild" ) )
   - '"grub2-common" in ansible_facts.packages'
   tags:
   - CCE-80359-3
@@ -1051,7 +1059,8 @@
   - medium_disruption | bool
   - reboot_required | bool
   - restrict_strategy | bool
-  - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
+  - ( ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"] and not ( lookup("env", "container")
+    == "bwrap-osbuild" ) )
   - '"grub2-common" in ansible_facts.packages'
   - fipsargcheck.rc == 0
   tags:
@@ -1086,7 +1095,8 @@
   - medium_disruption | bool
   - reboot_required | bool
   - restrict_strategy | bool
-  - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
+  - ( ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"] and not ( lookup("env", "container")
+    == "bwrap-osbuild" ) )
   - '"grub2-common" in ansible_facts.packages'
   - fipsargcheck.rc != 0
   tags:
@@ -1120,7 +1130,8 @@
   - medium_disruption | bool
   - reboot_required | bool
   - restrict_strategy | bool
-  - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
+  - ( ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"] and not ( lookup("env", "container")
+    == "bwrap-osbuild" ) )
   - '"grub2-common" in ansible_facts.packages'
   tags:
   - CCE-80359-3
@@ -1154,7 +1165,8 @@
   - medium_disruption | bool
   - reboot_required | bool
   - restrict_strategy | bool
-  - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
+  - ( ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"] and not ( lookup("env", "container")
+    == "bwrap-osbuild" ) )
   - '"grub2-common" in ansible_facts.packages'
   tags:
   - CCE-80359-3
@@ -1188,7 +1200,8 @@
   - medium_disruption | bool
   - reboot_required | bool
   - restrict_strategy | bool
-  - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
+  - ( ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"] and not ( lookup("env", "container")
+    == "bwrap-osbuild" ) )
   - '"grub2-common" in ansible_facts.packages'
   - bootargcheck.rc == 0
   tags:
@@ -1223,7 +1236,8 @@
   - medium_disruption | bool
   - reboot_required | bool
   - restrict_strategy | bool
-  - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
+  - ( ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"] and not ( lookup("env", "container")
+    == "bwrap-osbuild" ) )
   - '"grub2-common" in ansible_facts.packages'
   - bootargcheck.rc != 0
   tags:
@@ -1255,7 +1269,8 @@
   - medium_disruption | bool
   - reboot_required | bool
   - restrict_strategy | bool
-  - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
+  - ( ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"] and not ( lookup("env", "container")
+    == "bwrap-osbuild" ) )
   - '"grub2-common" in ansible_facts.packages'
   tags:
   - CCE-80359-3
@@ -2931,12 +2946,9 @@
   - restrict_strategy | bool
   - sudo_remove_nopasswd | bool
 
-- name: Find out if /etc/sudoers.d/* files contain 'Defaults timestamp_timeout' to be deduplicated
-  find:
-    path: /etc/sudoers.d
-    patterns: '*'
-    contains: ^[\s]*Defaults\s.*\btimestamp_timeout[\s]*=.*
-  register: sudoers_d_defaults_timestamp_timeout
+- name: Gather the package facts
+  package_facts:
+    manager: auto
   tags:
   - CCE-85963-7
   - DISA-STIG-RHEL-07-010343
@@ -2956,12 +2968,21 @@
   - restrict_strategy | bool
   - sudo_require_reauthentication | bool
 
-- name: Remove found occurrences of 'Defaults timestamp_timeout' from /etc/sudoers.d/* files
-  lineinfile:
-    path: '{{ item.path }}'
-    regexp: ^[\s]*Defaults\s.*\btimestamp_timeout[\s]*=.*
-    state: absent
-  with_items: '{{ sudoers_d_defaults_timestamp_timeout.files }}'
+- name: Find out if /etc/sudoers.d/* files contain 'Defaults timestamp_timeout' to be deduplicated
+  find:
+    path: /etc/sudoers.d
+    patterns: '*'
+    contains: ^[\s]*Defaults\s.*\btimestamp_timeout[\s]*=.*
+  register: sudoers_d_defaults_timestamp_timeout
+  when:
+  - DISA_STIG_RHEL_07_010343 | bool
+  - low_complexity | bool
+  - low_disruption | bool
+  - medium_severity | bool
+  - no_reboot_needed | bool
+  - restrict_strategy | bool
+  - sudo_require_reauthentication | bool
+  - '"sudo" in ansible_facts.packages'
   tags:
   - CCE-85963-7
   - DISA-STIG-RHEL-07-010343
@@ -2972,6 +2993,13 @@
   - no_reboot_needed
   - restrict_strategy
   - sudo_require_reauthentication
+
+- name: Remove found occurrences of 'Defaults timestamp_timeout' from /etc/sudoers.d/* files
+  lineinfile:
+    path: '{{ item.path }}'
+    regexp: ^[\s]*Defaults\s.*\btimestamp_timeout[\s]*=.*
+    state: absent
+  with_items: '{{ sudoers_d_defaults_timestamp_timeout.files }}'
   when:
   - DISA_STIG_RHEL_07_010343 | bool
   - low_complexity | bool
@@ -2980,6 +3008,17 @@
   - no_reboot_needed | bool
   - restrict_strategy | bool
   - sudo_require_reauthentication | bool
+  - '"sudo" in ansible_facts.packages'
+  tags:
+  - CCE-85963-7
+  - DISA-STIG-RHEL-07-010343
+  - NIST-800-53-IA-11
+  - low_complexity
+  - low_disruption
+  - medium_severity
+  - no_reboot_needed
+  - restrict_strategy
+  - sudo_require_reauthentication
 
 - name: Ensure timestamp_timeout is enabled with the appropriate value in /etc/sudoers
   lineinfile:
@@ -2989,6 +3028,15 @@
     validate: /usr/sbin/visudo -cf %s
     backrefs: true
   register: edit_sudoers_timestamp_timeout_option
+  when:
+  - DISA_STIG_RHEL_07_010343 | bool
+  - low_complexity | bool
+  - low_disruption | bool
+  - medium_severity | bool
+  - no_reboot_needed | bool
+  - restrict_strategy | bool
+  - sudo_require_reauthentication | bool
+  - '"sudo" in ansible_facts.packages'
   tags:
   - CCE-85963-7
   - DISA-STIG-RHEL-07-010343
@@ -2999,14 +3047,6 @@
   - no_reboot_needed
   - restrict_strategy
   - sudo_require_reauthentication
-  when:
-  - DISA_STIG_RHEL_07_010343 | bool
-  - low_complexity | bool
-  - low_disruption | bool
-  - medium_severity | bool
-  - no_reboot_needed | bool
-  - restrict_strategy | bool
-  - sudo_require_reauthentication | bool
 
 - name: Enable timestamp_timeout option with appropriate value in /etc/sudoers
   lineinfile:
@@ -3021,6 +3061,7 @@
   - no_reboot_needed | bool
   - restrict_strategy | bool
   - sudo_require_reauthentication | bool
+  - '"sudo" in ansible_facts.packages'
   - edit_sudoers_timestamp_timeout_option is defined and not edit_sudoers_timestamp_timeout_option.changed
   tags:
   - CCE-85963-7
@@ -10913,7 +10954,7 @@
 
 - name: Ensure interactive local users are the group-owners of their respective initialization files
   ansible.builtin.command:
-    cmd: awk -F':' '{ if ($3 >= 1000 && $3 != 65534) system("chgrp -f " $3" "$6"/.[^\.]?*") }' /etc/passwd
+    cmd: awk -F':' '{ if ($3 >= 1000 && $3 != 65534) system("chgrp -f " $4" "$6"/.[^\.]?*") }' /etc/passwd
   tags:
   - CCE-80526-7
   - DISA-STIG-RHEL-07-020700
@@ -11064,7 +11105,7 @@
   - no_reboot_needed | bool
   - restrict_strategy | bool
 
-- name: Test for existence home directories to avoid creating them, but only fixing ownership
+- name: Test for existence of home directories to avoid creating them, but only fixing ownership
   ansible.builtin.stat:
     path: '{{ item.value[4] }}'
   register: path_exists
@@ -11077,8 +11118,8 @@
   - medium_severity | bool
   - no_reboot_needed | bool
   - restrict_strategy | bool
-  - item.value[2]|int >= 1000
-  - item.value[2]|int != 65534
+  - item.value[1]|int >= 1000
+  - item.value[1]|int != 65534
   tags:
   - CCE-80534-1
   - DISA-STIG-RHEL-07-020670
@@ -11157,7 +11198,7 @@
   - no_reboot_needed | bool
   - restrict_strategy | bool
 
-- name: Test for existence home directories to avoid creating them, but only fixing ownership
+- name: Test for existence of home directories to avoid creating them, but only fixing ownership
   ansible.builtin.stat:
     path: '{{ item.value[4] }}'
   register: path_exists
@@ -11357,8 +11398,8 @@
   - medium_severity | bool
   - no_reboot_needed | bool
   - restrict_strategy | bool
-  - item.value[2]|int >= 1000
-  - item.value[2]|int != 65534
+  - item.value[1]|int >= 1000
+  - item.value[1]|int != 65534
   tags:
   - CCE-80532-5
   - DISA-STIG-RHEL-07-020650
@@ -11436,7 +11477,7 @@
   - no_reboot_needed | bool
   - restrict_strategy | bool
 
-- name: Test for existence home directories to avoid creating them, but only fixing ownership
+- name: Test for existence of home directories to avoid creating them, but only fixing ownership
   ansible.builtin.stat:
     path: '{{ item.value[4] }}'
   register: path_exists
@@ -30070,7 +30111,7 @@
   lineinfile:
     create: true
     dest: /etc/modprobe.d/dccp.conf
-    regexp: dccp
+    regexp: install\s+dccp
     line: install dccp /bin/true
   when:
   - DISA_STIG_RHEL_07_020101 | bool
@@ -30316,7 +30357,7 @@
   lineinfile:
     create: true
     dest: /etc/modprobe.d/usb-storage.conf
-    regexp: usb-storage
+    regexp: install\s+usb-storage
     line: install usb-storage /bin/true
   when:
   - DISA_STIG_RHEL_07_020100 | bool
@@ -31352,6 +31393,7 @@
   - no_reboot_needed | bool
   - sebool_ssh_sysadm_login | bool
   - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
+  - not ( lookup("env", "container") == "bwrap-osbuild" )
   tags:
   - CCE-82327-8
   - DISA-STIG-RHEL-07-020022
@@ -31376,6 +31418,7 @@
   - no_reboot_needed | bool
   - sebool_ssh_sysadm_login | bool
   - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
+  - not ( lookup("env", "container") == "bwrap-osbuild" )
   tags:
   - CCE-82327-8
   - DISA-STIG-RHEL-07-020022
@@ -33570,6 +33613,33 @@
   - no_reboot_needed
   - restrict_strategy
   - sshd_use_approved_ciphers_ordered_stig
+
+- name: Configure sshd to use FIPS 140-2 approved key exchange algorithms
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    line: KexAlgorithms ecdh-sha2-nistp256,ecdh-sha2-nistp384,ecdh-sha2-nistp521,diffie-hellman-group-exchange-sha256
+    state: present
+    regexp: ^\s*KexAlgorithms\s*(?=[\w-])(\becdh-sha2-nistp256\b,?)?(\becdh-sha2-nistp384\b,?)?(\becdh-sha2-nistp521\b,?)?(\bdiffie-hellman-group-exchange-sha256)?[\s]*(?:#.*)?$
+    create: true
+  when:
+  - DISA_STIG_RHEL_07_040712 | bool
+  - low_complexity | bool
+  - low_disruption | bool
+  - medium_severity | bool
+  - no_reboot_needed | bool
+  - restrict_strategy | bool
+  - sshd_use_approved_kex_ordered_stig | bool
+  - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
+  tags:
+  - CCE-86061-9
+  - DISA-STIG-RHEL-07-040712
+  - NIST-800-53-AC-17(2)
+  - low_complexity
+  - low_disruption
+  - medium_severity
+  - no_reboot_needed
+  - restrict_strategy
+  - sshd_use_approved_kex_ordered_stig
 
 - name: Configure sshd to use approved MACs
   lineinfile:
