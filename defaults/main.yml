@@ -197,6 +197,7 @@ DISA_STIG_RHEL_07_030873: true
 DISA_STIG_RHEL_07_030874: true
 DISA_STIG_RHEL_07_030910: true
 DISA_STIG_RHEL_07_031000: true
+DISA_STIG_RHEL_07_031010: true
 DISA_STIG_RHEL_07_040000: true
 DISA_STIG_RHEL_07_040110: true
 DISA_STIG_RHEL_07_040160: true
@@ -433,6 +434,7 @@ restrict_strategy: true
 rpm_verify_hashes: true
 rpm_verify_ownership: true
 rpm_verify_permissions: true
+rsyslog_nolisten: true
 rsyslog_remote_loghost: true
 sebool_ssh_sysadm_login: true
 security_patches_up_to_date: true
