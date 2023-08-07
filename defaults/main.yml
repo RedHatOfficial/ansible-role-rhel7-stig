@@ -27,6 +27,7 @@ var_accounts_minimum_age_login_defs: '1'
 var_accounts_fail_delay: '4'
 var_accounts_max_concurrent_login_sessions: '10'
 var_accounts_tmout: '900'
+var_user_initialization_files_regex: ^(\.bashrc|\.zshrc|\.cshrc|\.profile|\.bash_login|\.bash_profile)$
 var_accounts_user_umask: '077'
 var_audit_failure_mode: '2'
 var_audispd_remote_server: logcollector
@@ -57,6 +58,7 @@ var_sshd_disable_compression: 'no'
 var_sshd_priv_separation: sandbox
 var_sssd_ldap_tls_ca_dir: /etc/openldap/cacerts
 DISA_STIG_RHEL_07_010010: true
+DISA_STIG_RHEL_07_010019: true
 DISA_STIG_RHEL_07_010020: true
 DISA_STIG_RHEL_07_010030: true
 DISA_STIG_RHEL_07_010040: true
@@ -64,6 +66,7 @@ DISA_STIG_RHEL_07_010050: true
 DISA_STIG_RHEL_07_010060: true
 DISA_STIG_RHEL_07_010061: true
 DISA_STIG_RHEL_07_010062: true
+DISA_STIG_RHEL_07_010063: true
 DISA_STIG_RHEL_07_010070: true
 DISA_STIG_RHEL_07_010081: true
 DISA_STIG_RHEL_07_010082: true
@@ -84,11 +87,13 @@ DISA_STIG_RHEL_07_010200: true
 DISA_STIG_RHEL_07_010210: true
 DISA_STIG_RHEL_07_010220: true
 DISA_STIG_RHEL_07_010230: true
+DISA_STIG_RHEL_07_010240: true
 DISA_STIG_RHEL_07_010250: true
 DISA_STIG_RHEL_07_010260: true
 DISA_STIG_RHEL_07_010270: true
 DISA_STIG_RHEL_07_010280: true
 DISA_STIG_RHEL_07_010290: true
+DISA_STIG_RHEL_07_010291: true
 DISA_STIG_RHEL_07_010300: true
 DISA_STIG_RHEL_07_010310: true
 DISA_STIG_RHEL_07_010320: true
@@ -97,6 +102,7 @@ DISA_STIG_RHEL_07_010339: true
 DISA_STIG_RHEL_07_010340: true
 DISA_STIG_RHEL_07_010342: true
 DISA_STIG_RHEL_07_010343: true
+DISA_STIG_RHEL_07_010344: true
 DISA_STIG_RHEL_07_010350: true
 DISA_STIG_RHEL_07_010375: true
 DISA_STIG_RHEL_07_010430: true
@@ -108,6 +114,7 @@ DISA_STIG_RHEL_07_010481: true
 DISA_STIG_RHEL_07_020000: true
 DISA_STIG_RHEL_07_020010: true
 DISA_STIG_RHEL_07_020022: true
+DISA_STIG_RHEL_07_020028: true
 DISA_STIG_RHEL_07_020029: true
 DISA_STIG_RHEL_07_020030: true
 DISA_STIG_RHEL_07_020040: true
@@ -135,6 +142,7 @@ DISA_STIG_RHEL_07_020670: true
 DISA_STIG_RHEL_07_020680: true
 DISA_STIG_RHEL_07_020690: true
 DISA_STIG_RHEL_07_020700: true
+DISA_STIG_RHEL_07_020710: true
 DISA_STIG_RHEL_07_021000: true
 DISA_STIG_RHEL_07_021010: true
 DISA_STIG_RHEL_07_021020: true
@@ -145,6 +153,8 @@ DISA_STIG_RHEL_07_021110: true
 DISA_STIG_RHEL_07_021120: true
 DISA_STIG_RHEL_07_021300: true
 DISA_STIG_RHEL_07_021350: true
+DISA_STIG_RHEL_07_021600: true
+DISA_STIG_RHEL_07_021610: true
 DISA_STIG_RHEL_07_021710: true
 DISA_STIG_RHEL_07_030000: true
 DISA_STIG_RHEL_07_030010: true
@@ -227,6 +237,8 @@ DISA_STIG_RHEL_07_040470: true
 DISA_STIG_RHEL_07_040500: true
 DISA_STIG_RHEL_07_040520: true
 DISA_STIG_RHEL_07_040530: true
+DISA_STIG_RHEL_07_040540: true
+DISA_STIG_RHEL_07_040550: true
 DISA_STIG_RHEL_07_040610: true
 DISA_STIG_RHEL_07_040611: true
 DISA_STIG_RHEL_07_040612: true
@@ -236,6 +248,7 @@ DISA_STIG_RHEL_07_040640: true
 DISA_STIG_RHEL_07_040641: true
 DISA_STIG_RHEL_07_040650: true
 DISA_STIG_RHEL_07_040660: true
+DISA_STIG_RHEL_07_040670: true
 DISA_STIG_RHEL_07_040680: true
 DISA_STIG_RHEL_07_040690: true
 DISA_STIG_RHEL_07_040700: true
@@ -272,6 +285,7 @@ accounts_password_pam_pwhistory_remember_system_auth: true
 accounts_password_pam_retry: true
 accounts_password_pam_ucredit: true
 accounts_password_set_max_life_existing: true
+accounts_password_set_min_life_existing: true
 accounts_passwords_pam_faillock_deny: true
 accounts_passwords_pam_faillock_deny_root: true
 accounts_passwords_pam_faillock_interval: true
@@ -288,6 +302,8 @@ accounts_users_home_files_permissions: true
 aide_build_database: true
 aide_periodic_cron_checking: true
 aide_scan_notification: true
+aide_verify_acls: true
+aide_verify_ext_attributes: true
 audit_rules_dac_modification_chmod: true
 audit_rules_dac_modification_chown: true
 audit_rules_dac_modification_fchmod: true
@@ -365,11 +381,13 @@ banner_etc_issue: true
 chronyd_or_ntpd_set_maxpoll: true
 clean_components_post_updating: true
 configure_strategy: true
+dconf_db_up_to_date: true
 dconf_gnome_banner_enabled: true
 dconf_gnome_disable_automount: true
 dconf_gnome_disable_automount_open: true
 dconf_gnome_disable_autorun: true
 dconf_gnome_disable_ctrlaltdel_reboot: true
+dconf_gnome_disable_user_list: true
 dconf_gnome_enable_smartcard_auth: true
 dconf_gnome_login_banner_text: true
 dconf_gnome_screensaver_idle_activation_enabled: true
@@ -383,14 +401,17 @@ dconf_gnome_session_idle_user_locks: true
 disable_ctrlaltdel_reboot: true
 disable_host_auth: true
 disable_strategy: true
+disallow_bypass_password_sudo: true
 display_login_attempts: true
 enable_strategy: true
 ensure_gpgcheck_globally_activated: true
 ensure_gpgcheck_local_packages: true
+ensure_redhat_gpgkey_installed: true
 file_groupowner_cron_allow: true
 file_groupownership_home_directories: true
 file_owner_cron_allow: true
 file_ownership_home_directories: true
+file_permission_user_init_files: true
 file_permissions_home_directories: true
 file_permissions_sshd_private_key: true
 file_permissions_sshd_pub_key: true
@@ -406,6 +427,7 @@ kernel_module_dccp_disabled: true
 low_complexity: true
 low_disruption: true
 low_severity: true
+medium_complexity: true
 medium_disruption: true
 medium_severity: true
 mount_option_dev_shm_nodev: true
@@ -416,9 +438,14 @@ mount_option_krb_sec_remote_filesystems: true
 mount_option_noexec_remote_filesystems: true
 mount_option_nosuid_remote_filesystems: true
 mount_option_nosuid_removable_partitions: true
+network_sniffer_disabled: true
 no_empty_passwords: true
+no_empty_passwords_etc_shadow: true
+no_host_based_files: true
 no_reboot_needed: true
+no_user_host_based_files: true
 package_aide_installed: true
+package_mailx_installed: true
 package_openssh_server_installed: true
 package_rsh_server_removed: true
 package_screen_installed: true
