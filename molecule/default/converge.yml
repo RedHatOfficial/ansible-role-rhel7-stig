@@ -1,8 +1,0 @@
----
-- name: Converge
-  hosts: all
-  gather_facts: true
-  become: true
-
-  roles:
-    - role: redhatofficial.rhel7-stig

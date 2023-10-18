@@ -1,21 +1,17 @@
 galaxy_info:
-  role_name: rhel7_stig
-  author: ComplianceAsCode development team
-  description: DISA STIG for Red Hat Enterprise Linux 7
+  role_name: al2_ansible_hardening
+  author: VMware patrnered with Mitre Corp
+  description: DISA STIG for Amazon Linux 2
 
-  issue_tracker_url: https://github.com/ComplianceAsCode/content/issues
-
-  license: BSD-3-Clause
+  license: apache-2.0 license
 
   min_ansible_version: 2.9
 
   platforms:
-  - name: EL
+  - name: Amazon
     versions:
-    - 7
+    - 2
 
-  galaxy_tags: [system, hardening, openscap, ssg, scap, security, compliance, complianceascode,
-  redhatofficial, redhat, rhel7, stig, disa]
-
+  galaxy_tags: [system, hardening, openscap, ssg, scap, security, compliance, complianceascode, al2, stig, disa]
 
 dependencies: []

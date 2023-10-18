@@ -3,4 +3,4 @@
   connection: local
   become: true
   roles:
-    - ansible-role-rhel7-stig
+    - al2_ansible_hardening
