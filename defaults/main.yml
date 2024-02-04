@@ -30,12 +30,14 @@ var_accounts_tmout: '900'
 var_user_initialization_files_regex: ^(\.bashrc|\.zshrc|\.cshrc|\.profile|\.bash_login|\.bash_profile)$
 var_accounts_user_umask: '077'
 var_audit_failure_mode: '2'
+var_accounts_passwords_pam_faillock_dir: /var/run/faillock
 var_audispd_remote_server: logcollector
 var_audispd_disk_full_action: single
 var_audispd_network_failure_action: single
 var_auditd_action_mail_acct: root
 var_auditd_space_left_action: email
 var_auditd_space_left_percentage: '25'
+var_auditd_name_format: hostname|fqd|numeric
 rsyslog_remote_loghost_address: logcollector
 sysctl_net_ipv6_conf_all_accept_source_route_value: '0'
 sysctl_net_ipv4_conf_all_accept_redirects_value: '0'
