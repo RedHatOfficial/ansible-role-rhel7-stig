@@ -58,7 +58,6 @@ var_snmpd_rw_string: changemerw
 sshd_idle_timeout_value: '600'
 var_sshd_disable_compression: 'no'
 var_sshd_priv_separation: sandbox
-var_sssd_ldap_tls_ca_dir: /etc/openldap/cacerts
 DISA_STIG_RHEL_07_010010: true
 DISA_STIG_RHEL_07_010019: true
 DISA_STIG_RHEL_07_010020: true
@@ -216,7 +215,6 @@ DISA_STIG_RHEL_07_040160: true
 DISA_STIG_RHEL_07_040170: true
 DISA_STIG_RHEL_07_040180: true
 DISA_STIG_RHEL_07_040190: true
-DISA_STIG_RHEL_07_040200: true
 DISA_STIG_RHEL_07_040201: true
 DISA_STIG_RHEL_07_040300: true
 DISA_STIG_RHEL_07_040310: true
@@ -502,7 +500,6 @@ sshd_use_approved_kex_ordered_stig: true
 sshd_use_approved_macs_ordered_stig: true
 sshd_use_priv_separation: true
 sshd_x11_use_localhost: true
-sssd_ldap_configure_tls_ca_dir: true
 sssd_ldap_configure_tls_reqcert: true
 sssd_ldap_start_tls: true
 sudo_remove_no_authenticate: true
