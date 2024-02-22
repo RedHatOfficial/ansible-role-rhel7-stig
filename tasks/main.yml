@@ -1,37 +1,4 @@
-- name: 'Set fact: Package manager reinstall command (dnf)'
-  set_fact:
-    package_manager_reinstall_cmd: dnf reinstall -y
-  when:
-  - DISA_STIG_RHEL_07_010020 | bool
-  - high_complexity | bool
-  - high_severity | bool
-  - medium_disruption | bool
-  - no_reboot_needed | bool
-  - restrict_strategy | bool
-  - rpm_verify_hashes | bool
-  - ansible_distribution == "Fedora"
-  tags:
-  - CCE-27157-7
-  - CJIS-5.10.4.1
-  - DISA-STIG-RHEL-07-010020
-  - NIST-800-171-3.3.8
-  - NIST-800-171-3.4.1
-  - NIST-800-53-AU-9(3)
-  - NIST-800-53-CM-6(c)
-  - NIST-800-53-CM-6(d)
-  - NIST-800-53-SI-7
-  - NIST-800-53-SI-7(1)
-  - NIST-800-53-SI-7(6)
-  - PCI-DSS-Req-11.5
-  - PCI-DSSv4-11.5.2
-  - high_complexity
-  - high_severity
-  - medium_disruption
-  - no_reboot_needed
-  - restrict_strategy
-  - rpm_verify_hashes
-
-- name: 'Set fact: Package manager reinstall command (yum)'
+- name: 'Set fact: Package manager reinstall command'
   set_fact:
     package_manager_reinstall_cmd: yum reinstall -y
   when:
@@ -42,7 +9,7 @@
   - no_reboot_needed | bool
   - restrict_strategy | bool
   - rpm_verify_hashes | bool
-  - (ansible_distribution == "RedHat" or ansible_distribution == "CentOS" or ansible_distribution == "OracleLinux")
+  - ansible_distribution in [ "Fedora", "RedHat", "CentOS", "OracleLinux" ]
   tags:
   - CCE-27157-7
   - CJIS-5.10.4.1
@@ -4488,7 +4455,9 @@
 
 - name: Set Fact - Valid fingerprints
   set_fact:
-    gpg_valid_fingerprints: ("567E347AD0044ADE55BA8A5F199E2F91FD431D51" "43A6E49C4A38F4BE9ABF2A5345689C882FA658E0")
+    gpg_valid_fingerprints:
+    - 567E347AD0044ADE55BA8A5F199E2F91FD431D51
+    - 43A6E49C4A38F4BE9ABF2A5345689C882FA658E0
   tags:
   - CCE-26957-1
   - CJIS-5.10.4.1
@@ -11616,7 +11585,7 @@
   replace:
     path: /etc/bashrc
     regexp: ^[^#].*TMOUT=.*
-    replace: declare -xr TMOUT={{ var_accounts_tmout }}
+    replace: typeset -xr TMOUT={{ var_accounts_tmout }}
   register: bashrc_replaced
   when:
   - DISA_STIG_RHEL_07_040160 | bool
@@ -11647,7 +11616,7 @@
   replace:
     path: /etc/profile
     regexp: ^[^#].*TMOUT=.*
-    replace: declare -xr TMOUT={{ var_accounts_tmout }}
+    replace: typeset -xr TMOUT={{ var_accounts_tmout }}
   register: profile_replaced
   when:
   - DISA_STIG_RHEL_07_040160 | bool
@@ -11679,7 +11648,7 @@
     path: /etc/profile.d/tmout.sh
     create: true
     regexp: TMOUT=
-    line: declare -xr TMOUT={{ var_accounts_tmout }}
+    line: typeset -xr TMOUT={{ var_accounts_tmout }}
     state: present
   when:
   - DISA_STIG_RHEL_07_040160 | bool
@@ -13015,38 +12984,6 @@
   - no_reboot_needed
   - restrict_strategy
 
-- name: Check the rules script being used
-  ansible.builtin.command: grep '^ExecStartPost' /usr/lib/systemd/system/auditd.service
-  register: check_rules_scripts_result
-  changed_when: false
-  failed_when: false
-  when:
-  - DISA_STIG_RHEL_07_030360 | bool
-  - audit_rules_suid_privilege_function | bool
-  - low_complexity | bool
-  - low_disruption | bool
-  - medium_severity | bool
-  - no_reboot_needed | bool
-  - restrict_strategy | bool
-  - '"audit" in ansible_facts.packages'
-  - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
-  tags:
-  - CCE-83555-3
-  - DISA-STIG-RHEL-07-030360
-  - NIST-800-53-AC-6(9)
-  - NIST-800-53-AU-12(3)
-  - NIST-800-53-AU-7(a)
-  - NIST-800-53-AU-7(b)
-  - NIST-800-53-AU-8(b)
-  - NIST-800-53-CM-5(1)
-  - PCI-DSSv4-10.2.1.2
-  - audit_rules_suid_privilege_function
-  - low_complexity
-  - low_disruption
-  - medium_severity
-  - no_reboot_needed
-  - restrict_strategy
-
 - name: Set suid_audit_rules fact
   ansible.builtin.set_fact:
     suid_audit_rules:
@@ -13101,8 +13038,7 @@
   - restrict_strategy | bool
   - '"audit" in ansible_facts.packages'
   - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
-  - '"auditd.service" in ansible_facts.services'
-  - '"augenrules" in check_rules_scripts_result.stdout'
+  - ('"auditd.service" in ansible_facts.services' or '"augenrules.service" in ansible_facts.services')
   register: augenrules_audit_rules_privilege_function_update_result
   with_items: '{{ suid_audit_rules }}'
   tags:
@@ -13138,8 +13074,7 @@
   - restrict_strategy | bool
   - '"audit" in ansible_facts.packages'
   - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
-  - '"auditd.service" in ansible_facts.services'
-  - '"auditctl" in check_rules_scripts_result.stdout'
+  - ('"auditd.service" in ansible_facts.services' or '"augenrules.service" in ansible_facts.services')
   register: auditctl_audit_rules_privilege_function_update_result
   with_items: '{{ suid_audit_rules }}'
   tags:
@@ -15320,7 +15255,7 @@
   - restrict_strategy | bool
   - '"audit" in ansible_facts.packages'
   - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
-  - (log_file_exists.stdout | length > 0)
+  - log_file_exists is not skipped and (log_file_exists.stdout | length > 0)
   tags:
   - CCE-27205-4
   - CJIS-5.4.1.1
@@ -15351,7 +15286,7 @@
   - restrict_strategy | bool
   - '"audit" in ansible_facts.packages'
   - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
-  - (log_file_exists is undefined) or (log_file_exists.stdout | length == 0)
+  - (log_file_exists is skipped) or (log_file_exists is undefined) or (log_file_exists.stdout | length == 0)
   tags:
   - CCE-27205-4
   - CJIS-5.4.1.1
@@ -15382,7 +15317,7 @@
   - restrict_strategy | bool
   - '"audit" in ansible_facts.packages'
   - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
-  - (log_file_line.stdout is defined) and (log_file_line.stdout | length > 0)
+  - (log_file_exists is not skipped) and (log_file_line.stdout is defined) and (log_file_line.stdout | length > 0)
   tags:
   - CCE-27205-4
   - CJIS-5.4.1.1
@@ -29748,7 +29683,7 @@
 - name: Configure auditd space_left Action on Low Disk Space
   lineinfile:
     dest: /etc/audit/auditd.conf
-    line: space_left_action = {{ var_auditd_space_left_action }}
+    line: space_left_action = {{ var_auditd_space_left_action.split('|')[0] }}
     regexp: ^\s*space_left_action\s*=\s*.*$
     state: present
     create: true
@@ -31579,7 +31514,7 @@
     create: true
     dest: /etc/modprobe.d/dccp.conf
     regexp: install\s+dccp
-    line: install dccp /bin/true
+    line: install dccp /bin/false
   when:
   - DISA_STIG_RHEL_07_020101 | bool
   - disable_strategy | bool
@@ -31669,6 +31604,36 @@
   - unknown_strategy | bool
   - wireless_disable_interfaces | bool
 
+- name: Service facts
+  ansible.builtin.service_facts: null
+  tags:
+  - CCE-27358-1
+  - DISA-STIG-RHEL-07-041010
+  - NIST-800-171-3.1.16
+  - NIST-800-53-AC-18(3)
+  - NIST-800-53-AC-18(a)
+  - NIST-800-53-CM-6(a)
+  - NIST-800-53-CM-7(a)
+  - NIST-800-53-CM-7(b)
+  - NIST-800-53-MP-7
+  - PCI-DSS-Req-1.3.3
+  - PCI-DSSv4-1.3.3
+  - PCI-DSSv4-2.3
+  - low_complexity
+  - medium_disruption
+  - medium_severity
+  - no_reboot_needed
+  - unknown_strategy
+  - wireless_disable_interfaces
+  when:
+  - DISA_STIG_RHEL_07_041010 | bool
+  - low_complexity | bool
+  - medium_disruption | bool
+  - medium_severity | bool
+  - no_reboot_needed | bool
+  - unknown_strategy | bool
+  - wireless_disable_interfaces | bool
+
 - name: Ensure NetworkManager is installed
   ansible.builtin.package:
     name: '{{ item }}'
@@ -31703,7 +31668,7 @@
   - unknown_strategy | bool
   - wireless_disable_interfaces | bool
 
-- name: Deactivate Wireless Network Interfaces
+- name: NetworkManager Deactivate Wireless Network Interfaces
   command: nmcli radio wifi off
   when:
   - DISA_STIG_RHEL_07_041010 | bool
@@ -31714,6 +31679,7 @@
   - unknown_strategy | bool
   - wireless_disable_interfaces | bool
   - '''NetworkManager'' in ansible_facts.packages'
+  - ansible_facts.services['NetworkManager.service'].state == 'running'
   tags:
   - CCE-27358-1
   - DISA-STIG-RHEL-07-041010
@@ -31733,6 +31699,32 @@
   - no_reboot_needed
   - unknown_strategy
   - wireless_disable_interfaces
+
+- name: Gather the package facts
+  package_facts:
+    manager: auto
+  tags:
+  - CCE-27498-5
+  - DISA-STIG-RHEL-07-020110
+  - NIST-800-171-3.4.6
+  - NIST-800-53-CM-6(a)
+  - NIST-800-53-CM-7(a)
+  - NIST-800-53-CM-7(b)
+  - NIST-800-53-MP-7
+  - disable_strategy
+  - low_complexity
+  - low_disruption
+  - medium_severity
+  - no_reboot_needed
+  - service_autofs_disabled
+  when:
+  - DISA_STIG_RHEL_07_020110 | bool
+  - disable_strategy | bool
+  - low_complexity | bool
+  - low_disruption | bool
+  - medium_severity | bool
+  - no_reboot_needed | bool
+  - service_autofs_disabled | bool
 
 - name: Block Disable service autofs
   block:
@@ -31755,7 +31747,8 @@
   - medium_severity | bool
   - no_reboot_needed | bool
   - service_autofs_disabled | bool
-  - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
+  - ( ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"] and "autofs" in ansible_facts.packages
+    )
   tags:
   - CCE-27498-5
   - DISA-STIG-RHEL-07-020110
@@ -31785,7 +31778,8 @@
   - medium_severity | bool
   - no_reboot_needed | bool
   - service_autofs_disabled | bool
-  - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
+  - ( ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"] and "autofs" in ansible_facts.packages
+    )
   tags:
   - CCE-27498-5
   - DISA-STIG-RHEL-07-020110
@@ -31815,7 +31809,8 @@
   - medium_severity | bool
   - no_reboot_needed | bool
   - service_autofs_disabled | bool
-  - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
+  - ( ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"] and "autofs" in ansible_facts.packages
+    )
   - socket_file_exists.stdout_lines is search("autofs.socket",multiline=True)
   tags:
   - CCE-27498-5
@@ -31837,7 +31832,7 @@
     create: true
     dest: /etc/modprobe.d/usb-storage.conf
     regexp: install\s+usb-storage
-    line: install usb-storage /bin/true
+    line: install usb-storage /bin/false
   when:
   - DISA_STIG_RHEL_07_020100 | bool
   - disable_strategy | bool
@@ -31977,6 +31972,7 @@
   - no_reboot_needed | bool
   - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
   - ("" | length == 0)
+  - device_name.stdout is defined and device_name.stdout_lines is defined
   - (device_name.stdout | length == 0)
   tags:
   - CCE-80152-2
@@ -32039,6 +32035,7 @@
   - mount_option_dev_shm_nodev | bool
   - no_reboot_needed | bool
   - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
+  - mount_info is defined
   - (device_name.stdout is defined and (device_name.stdout | length > 0)) or ("" | length == 0)
   tags:
   - CCE-80152-2
@@ -32141,6 +32138,7 @@
   - no_reboot_needed | bool
   - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
   - ("" | length == 0)
+  - device_name.stdout is defined and device_name.stdout_lines is defined
   - (device_name.stdout | length == 0)
   tags:
   - CCE-80153-0
@@ -32203,6 +32201,7 @@
   - mount_option_dev_shm_noexec | bool
   - no_reboot_needed | bool
   - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
+  - mount_info is defined
   - (device_name.stdout is defined and (device_name.stdout | length > 0)) or ("" | length == 0)
   tags:
   - CCE-80153-0
@@ -32305,6 +32304,7 @@
   - no_reboot_needed | bool
   - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
   - ("" | length == 0)
+  - device_name.stdout is defined and device_name.stdout_lines is defined
   - (device_name.stdout | length == 0)
   tags:
   - CCE-80154-8
@@ -32367,6 +32367,7 @@
   - mount_option_dev_shm_nosuid | bool
   - no_reboot_needed | bool
   - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
+  - mount_info is defined
   - (device_name.stdout is defined and (device_name.stdout | length > 0)) or ("" | length == 0)
   tags:
   - CCE-80154-8
@@ -32472,6 +32473,7 @@
   - ( ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"] and "/home" in ansible_mounts
     | map(attribute="mount") | list )
   - ("--fstab" | length == 0)
+  - device_name.stdout is defined and device_name.stdout_lines is defined
   - (device_name.stdout | length == 0)
   tags:
   - CCE-81153-9
@@ -32536,6 +32538,7 @@
   - no_reboot_needed | bool
   - ( ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"] and "/home" in ansible_mounts
     | map(attribute="mount") | list )
+  - mount_info is defined
   - (device_name.stdout is defined and (device_name.stdout | length > 0)) or ("--fstab" | length == 0)
   tags:
   - CCE-81153-9
@@ -32872,7 +32875,7 @@
   - restrict_strategy
   - selinux_state
 
-- name: Ensure libsemanage-python installed
+- name: Disable the ssh_sysadm_login SELinux Boolean - Ensure libsemanage-python Installed
   package:
     name: libsemanage-python
     state: present
@@ -32884,7 +32887,6 @@
   - medium_severity | bool
   - no_reboot_needed | bool
   - sebool_ssh_sysadm_login | bool
-  - ( not ( lookup("env", "container") == "bwrap-osbuild" ) )
   - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
   tags:
   - CCE-82327-8
@@ -32896,7 +32898,7 @@
   - no_reboot_needed
   - sebool_ssh_sysadm_login
 
-- name: Set SELinux boolean ssh_sysadm_login accordingly
+- name: Disable the ssh_sysadm_login SELinux Boolean - Set SELinux Boolean ssh_sysadm_login Accordingly
   seboolean:
     name: ssh_sysadm_login
     state: '{{ var_ssh_sysadm_login }}'
@@ -32909,8 +32911,8 @@
   - medium_severity | bool
   - no_reboot_needed | bool
   - sebool_ssh_sysadm_login | bool
-  - ( not ( lookup("env", "container") == "bwrap-osbuild" ) )
   - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
+  - ansible_facts.selinux.status == 'enabled'
   tags:
   - CCE-82327-8
   - DISA-STIG-RHEL-07-020022
@@ -35786,159 +35788,6 @@
   - no_reboot_needed
   - restrict_strategy
   - sshd_x11_use_localhost
-
-- name: Gather the package facts
-  package_facts:
-    manager: auto
-  tags:
-  - CCE-80515-0
-  - DISA-STIG-RHEL-07-040200
-  - NIST-800-53-CM-6(a)
-  - NIST-800-53-SC-12(3)
-  - low_complexity
-  - medium_disruption
-  - medium_severity
-  - no_reboot_needed
-  - sssd_ldap_configure_tls_ca_dir
-  - unknown_strategy
-  when:
-  - DISA_STIG_RHEL_07_040200 | bool
-  - low_complexity | bool
-  - medium_disruption | bool
-  - medium_severity | bool
-  - no_reboot_needed | bool
-  - sssd_ldap_configure_tls_ca_dir | bool
-  - unknown_strategy | bool
-
-- name: Test for id_provider different than Active Directory (ad)
-  command: grep -qzosP '[[:space:]]*\[domain\/[^]]*]([^(\n)]*(\n)+)+?[[:space:]]*id_provider[[:space:]]*=[[:space:]]*((?i)ad)[[:space:]]*$'
-    /etc/sssd/sssd.conf
-  register: test_id_provider
-  failed_when: false
-  changed_when: false
-  check_mode: false
-  when:
-  - DISA_STIG_RHEL_07_040200 | bool
-  - low_complexity | bool
-  - medium_disruption | bool
-  - medium_severity | bool
-  - no_reboot_needed | bool
-  - sssd_ldap_configure_tls_ca_dir | bool
-  - unknown_strategy | bool
-  - '"sssd-common" in ansible_facts.packages'
-  - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
-  tags:
-  - CCE-80515-0
-  - DISA-STIG-RHEL-07-040200
-  - NIST-800-53-CM-6(a)
-  - NIST-800-53-SC-12(3)
-  - low_complexity
-  - medium_disruption
-  - medium_severity
-  - no_reboot_needed
-  - sssd_ldap_configure_tls_ca_dir
-  - unknown_strategy
-
-- name: Test for domain group
-  command: grep '\s*\[domain\/[^]]*]' /etc/sssd/sssd.conf
-  register: test_grep_domain
-  failed_when: false
-  changed_when: false
-  check_mode: false
-  when:
-  - DISA_STIG_RHEL_07_040200 | bool
-  - low_complexity | bool
-  - medium_disruption | bool
-  - medium_severity | bool
-  - no_reboot_needed | bool
-  - sssd_ldap_configure_tls_ca_dir | bool
-  - unknown_strategy | bool
-  - '"sssd-common" in ansible_facts.packages'
-  - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
-  tags:
-  - CCE-80515-0
-  - DISA-STIG-RHEL-07-040200
-  - NIST-800-53-CM-6(a)
-  - NIST-800-53-SC-12(3)
-  - low_complexity
-  - medium_disruption
-  - medium_severity
-  - no_reboot_needed
-  - sssd_ldap_configure_tls_ca_dir
-  - unknown_strategy
-
-- name: Add default domain group and set ldap_tls_cacertdir in sssd configuration (if no domain there)
-  ini_file:
-    path: /etc/sssd/sssd.conf
-    section: '{{ item.section }}'
-    option: '{{ item.option }}'
-    value: '{{ item.value }}'
-    mode: 384
-  with_items:
-  - section: sssd
-    option: domains
-    value: default
-  - section: domain/default
-    option: ldap_tls_cacertdir
-    value: '{{ var_sssd_ldap_tls_ca_dir }}'
-  when:
-  - DISA_STIG_RHEL_07_040200 | bool
-  - low_complexity | bool
-  - medium_disruption | bool
-  - medium_severity | bool
-  - no_reboot_needed | bool
-  - sssd_ldap_configure_tls_ca_dir | bool
-  - unknown_strategy | bool
-  - '"sssd-common" in ansible_facts.packages'
-  - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
-  - test_grep_domain.stdout is defined
-  - test_grep_domain.stdout | length < 1
-  - test_id_provider.stdout is defined
-  - test_id_provider.stdout | length < 1
-  tags:
-  - CCE-80515-0
-  - DISA-STIG-RHEL-07-040200
-  - NIST-800-53-CM-6(a)
-  - NIST-800-53-SC-12(3)
-  - low_complexity
-  - medium_disruption
-  - medium_severity
-  - no_reboot_needed
-  - sssd_ldap_configure_tls_ca_dir
-  - unknown_strategy
-
-- name: Set ldap_tls_cacertdir in sssd configuration
-  ini_file:
-    path: /etc/sssd/sssd.conf
-    section: '{{ test_grep_domain.stdout | regex_replace(''\[(.*)\]'',''\1'') }}'
-    option: ldap_tls_cacertdir
-    value: '{{ var_sssd_ldap_tls_ca_dir }}'
-    mode: 384
-  when:
-  - DISA_STIG_RHEL_07_040200 | bool
-  - low_complexity | bool
-  - medium_disruption | bool
-  - medium_severity | bool
-  - no_reboot_needed | bool
-  - sssd_ldap_configure_tls_ca_dir | bool
-  - unknown_strategy | bool
-  - '"sssd-common" in ansible_facts.packages'
-  - ansible_virtualization_type not in ["docker", "lxc", "openvz", "podman", "container"]
-  - test_grep_domain.stdout is defined
-  - test_grep_domain.stdout | length > 0
-  - test_id_provider.stdout is defined
-  - test_id_provider.stdout | length < 1
-  tags:
-  - CCE-80515-0
-  - DISA-STIG-RHEL-07-040200
-  - NIST-800-53-CM-6(a)
-  - NIST-800-53-SC-12(3)
-  - low_complexity
-  - medium_disruption
-  - medium_severity
-  - no_reboot_needed
-  - sssd_ldap_configure_tls_ca_dir
-  - unknown_strategy
 
 - name: Gather the package facts
   package_facts:
