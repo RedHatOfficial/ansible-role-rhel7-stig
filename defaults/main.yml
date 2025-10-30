@@ -29,15 +29,6 @@ var_accounts_max_concurrent_login_sessions: '10'
 var_accounts_tmout: '900'
 var_user_initialization_files_regex: ^(\.bashrc|\.zshrc|\.cshrc|\.profile|\.bash_login|\.bash_profile)$
 var_accounts_user_umask: '077'
-var_audit_failure_mode: '2'
-var_accounts_passwords_pam_faillock_dir: /var/run/faillock
-var_audispd_remote_server: logcollector
-var_audispd_disk_full_action: single
-var_audispd_network_failure_action: single
-var_auditd_action_mail_acct: root
-var_auditd_space_left_action: email
-var_auditd_space_left_percentage: '25'
-var_auditd_name_format: hostname|fqd|numeric
 rsyslog_remote_loghost_address: logcollector
 sysctl_net_ipv6_conf_all_accept_source_route_value: '0'
 sysctl_net_ipv4_conf_all_accept_redirects_value: '0'
@@ -58,6 +49,15 @@ var_snmpd_rw_string: changemerw
 sshd_idle_timeout_value: '600'
 var_sshd_disable_compression: 'no'
 var_sshd_priv_separation: sandbox
+var_audit_failure_mode: '2'
+var_accounts_passwords_pam_faillock_dir: /var/run/faillock
+var_audispd_remote_server: logcollector
+var_audispd_disk_full_action: single
+var_audispd_network_failure_action: single
+var_auditd_action_mail_acct: root
+var_auditd_space_left_action: email
+var_auditd_space_left_percentage: '25'
+var_auditd_name_format: hostname|fqd|numeric
 DISA_STIG_RHEL_07_010010: true
 DISA_STIG_RHEL_07_010019: true
 DISA_STIG_RHEL_07_010020: true
@@ -131,7 +131,6 @@ DISA_STIG_RHEL_07_020220: true
 DISA_STIG_RHEL_07_020230: true
 DISA_STIG_RHEL_07_020231: true
 DISA_STIG_RHEL_07_020240: true
-DISA_STIG_RHEL_07_020260: true
 DISA_STIG_RHEL_07_020310: true
 DISA_STIG_RHEL_07_020610: true
 DISA_STIG_RHEL_07_020620: true
@@ -262,6 +261,7 @@ DISA_STIG_RHEL_07_040750: true
 DISA_STIG_RHEL_07_040800: true
 DISA_STIG_RHEL_07_040830: true
 DISA_STIG_RHEL_07_041001: true
+DISA_STIG_RHEL_07_041002: true
 DISA_STIG_RHEL_07_041003: true
 DISA_STIG_RHEL_07_041010: true
 DISA_STIG_RHEL_07_910055: true
@@ -453,7 +453,6 @@ package_telnet_server_removed: true
 package_tftp_server_removed: true
 package_vsftpd_removed: true
 package_ypserv_removed: true
-patch_strategy: true
 postfix_prevent_unrestricted_relay: true
 reboot_required: true
 require_singleuser_auth: true
@@ -464,7 +463,6 @@ rpm_verify_permissions: true
 rsyslog_nolisten: true
 rsyslog_remote_loghost: true
 sebool_ssh_sysadm_login: true
-security_patches_up_to_date: true
 selinux_policytype: true
 selinux_state: true
 service_auditd_enabled: true
@@ -476,7 +474,6 @@ set_password_hashing_algorithm_libuserconf: true
 set_password_hashing_algorithm_logindefs: true
 set_password_hashing_algorithm_passwordauth: true
 set_password_hashing_algorithm_systemauth: true
-skip_ansible_lint: true
 smartcard_configure_cert_checking: true
 snmpd_not_default_password: true
 sshd_allow_only_protocol2: true
@@ -500,6 +497,7 @@ sshd_use_approved_kex_ordered_stig: true
 sshd_use_approved_macs_ordered_stig: true
 sshd_use_priv_separation: true
 sshd_x11_use_localhost: true
+sssd_enable_pam_services: true
 sssd_ldap_configure_tls_reqcert: true
 sssd_ldap_start_tls: true
 sudo_remove_no_authenticate: true
